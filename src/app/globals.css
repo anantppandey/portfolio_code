@@ -45,6 +45,18 @@ body {
   * {
     cursor: none !important;
   }
+
+  a {
+    cursor: none !important;
+  }
+
+  button {
+    cursor: none !important;
+  }
+
+  [role="button"] {
+    cursor: none !important;
+  }
 }
 
 body {

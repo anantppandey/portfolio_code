@@ -4,6 +4,14 @@ import { useRef, useMemo } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
+if (typeof window !== "undefined") {
+  const originalWarn = console.warn
+  console.warn = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && args[0].includes("Clock: This module has been deprecated")) return
+    originalWarn.apply(console, args as [string, ...unknown[]])
+  }
+}
+
 function Particles({ count = 120 }: { count?: number }) {
   const mesh = useRef<THREE.Points>(null)
 

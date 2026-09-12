@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import HoverImageReveal from "@/components/HoverImageReveal";
 import { lockScroll, unlockScroll } from "@/components/SmoothScroll";
@@ -93,17 +94,6 @@ const projects = [
     github: "",
     initials: "CW",
     videoSrc: "/media/gif/wallet.mp4",
-  },
-{
-    title: "My First Project",
-    status: "Personal",
-    tagline: "The project that started my robotics and engineering journey",
-    description:
-      "My first project, documenting an early step in my engineering journey and the beginning of the hands-on work that led to later robotics projects.",
-    tech: ["Engineering", "Robotics", "CAD", "Prototyping"],
-    github: "",
-    initials: "FP",
-    videoSrc: "/media/gif/first_project.mp4",
   }
 ];
 
@@ -133,15 +123,44 @@ export default function ProjectsSection() {
     };
   }, [selectedProject]);
 
+  const closeOverlay = () => {
+    setSelectedProject(null)
+    if (window.history.state?.overlayOpen) {
+      window.history.back()
+    }
+  }
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setSelectedProject(null)
+        closeOverlay()
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
+
+  useEffect(() => {
+    if (selectedProject) {
+      window.history.pushState(
+        { overlayOpen: true, projectTitle: selectedProject.title },
+        "",
+        window.location.href
+      )
+    }
+  }, [selectedProject])
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (selectedProject) {
+        e.preventDefault()
+        setSelectedProject(null)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [selectedProject])
 
   const items = {
     itemCount: projects.length,
@@ -261,28 +280,29 @@ export default function ProjectsSection() {
         />
       </div>
 
-      <AnimatePresence>
-        {selectedProject && (
-          <motion.div
-            className="project-overlay-container"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={() => {
-              setSelectedProject(null)
-            }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={selectedProject.title}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 200,
-              background: "rgba(9,9,9,0.95)",
-              backdropFilter: "blur(20px)",
-            }}
-          >
+      {typeof window !== "undefined" && createPortal(
+        <AnimatePresence>
+          {selectedProject && (
+            <motion.div
+              className="project-overlay-container"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => {
+                setSelectedProject(null)
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={selectedProject.title}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 9999,
+                background: "rgba(9,9,9,0.95)",
+                backdropFilter: "blur(20px)",
+              }}
+            >
             <motion.div
               className="project-overlay-inner"
               initial={{ opacity: 0, y: 20 }}
@@ -291,7 +311,7 @@ export default function ProjectsSection() {
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="project-overlay-left">
+              <div className="project-overlay-left" style={{ overflow: "hidden" }}>
                 <div
                   style={{
                     width: "100%",
@@ -339,11 +359,16 @@ export default function ProjectsSection() {
 
               <div
                 className="project-overlay-right"
+                style={{
+                  overflowY: "auto",
+                  WebkitOverflowScrolling: "touch",
+                  maxHeight: "100%",
+                }}
               >
                 <button
                   className="project-overlay-close"
                   onClick={() => {
-              setSelectedProject(null)
+              closeOverlay()
             }}
                   aria-label="Close project details"
                   style={{
@@ -496,7 +521,9 @@ export default function ProjectsSection() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body
+      )}
     </section>
   );
 }
