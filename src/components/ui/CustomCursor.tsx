@@ -31,7 +31,7 @@ export function CustomCursor() {
       clearTimeout(scrollTimerRef.current)
       scrollTimerRef.current = setTimeout(() => {
         setScrolling(false)
-      }, 400)
+      }, 0)
     }
 
     const handleLeave = () => setVisible(false)
