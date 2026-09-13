@@ -125,9 +125,13 @@ function Cursor({ ref, children, className, style, ...props }: CursorProps) {
             className,
           )}
           style={{ top: y, left: x, ...style }}
-          initial={{ scale: 0, opacity: 0 }}
+          initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
+          exit={{ scale: 0.6, opacity: 0 }}
+          // Without this the default spring runs, and growing from scale 0
+          // reads as the cursor lagging behind the pointer every time it
+          // comes back. A pointer has to feel immediate, so keep it short.
+          transition={{ duration: 0.12, ease: "easeOut" }}
           {...props}
         >
           {children}
