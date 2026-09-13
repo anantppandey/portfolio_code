@@ -59,12 +59,15 @@ function CursorProvider({ ref, children, ...props }: CursorProviderProps) {
     };
     const handleMouseLeave = () => setIsActive(false);
 
-    parent.addEventListener('mousemove', handleMouseMove);
-    parent.addEventListener('mouseleave', handleMouseLeave);
+    // Bound to window rather than the parent element so the cursor keeps
+    // tracking over content rendered through a portal, which lands elsewhere
+    // in the DOM and so never fires the parent's own pointer events.
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      parent.removeEventListener('mousemove', handleMouseMove);
-      parent.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
 
@@ -115,13 +118,20 @@ function Cursor({ ref, children, className, style, ...props }: CursorProps) {
           ref={cursorRef}
           data-slot="cursor"
           className={cn(
-            'transform-[translate(-50%,-50%)] pointer-events-none z-[9999] absolute',
+            // Above z-9999: the portal-rendered overlays sit at 9999 and come
+            // later in the body, so at an equal index they would paint over
+            // the arrow and it would vanish whenever one was open.
+            'transform-[translate(-50%,-50%)] pointer-events-none z-[2147483647] absolute',
             className,
           )}
           style={{ top: y, left: x, ...style }}
-          initial={{ scale: 0, opacity: 0 }}
+          initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
+          exit={{ scale: 0.6, opacity: 0 }}
+          // Without this the default spring runs, and growing from scale 0
+          // reads as the cursor lagging behind the pointer every time it
+          // comes back. A pointer has to feel immediate, so keep it short.
+          transition={{ duration: 0.12, ease: "easeOut" }}
           {...props}
         >
           {children}

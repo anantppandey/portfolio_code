@@ -8,6 +8,9 @@ const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
 
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
+/** Sources a <video> can decode. Anything else is handed to an <img>. */
+const isVideoSrc = (src: string) => /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(src);
+
 /**
  * Media rendered on the server can fail before hydration attaches onError,
  * and the error event does not fire twice. These read the element's settled
@@ -62,6 +65,18 @@ export default function HoverImageReveal({
    * once this settles to false, which keeps touch devices from fetching any clip.
    */
   const [isTouch, setIsTouch] = useState<boolean | null>(null);
+  /**
+   * Width rather than hover capability: the carousel is a layout decision, so
+   * it follows the breakpoint. Starts false so the server render is stable.
+   */
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   /** Indices whose video or image failed to load, keyed so each is retried once. */
   const [failedMedia, setFailedMedia] = useState<Record<number, boolean>>({});
 
@@ -99,6 +114,222 @@ export default function HoverImageReveal({
   const touch = isTouch === true;
   const showMedia = isTouch === false;
 
+  /** Two letters from the title, the fallback when a card has no artwork. */
+  const initialsFor = (text?: string) =>
+    (text ?? "")
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+  const fillMedia: CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: "center",
+    display: "block",
+  };
+
+  /**
+   * Artwork for one carousel card: the project's own clip when it is a format
+   * a video element can decode, its still otherwise, and the title initials
+   * when the source is missing or fails to load.
+   */
+  const renderCardMedia = (item: HoverImageRevealItem, i: number) => {
+    const src = item.image?.src ?? "";
+    const broken = failedMedia[i];
+
+    if (src && !broken) {
+      if (isVideoSrc(src)) {
+        return (
+          <video
+            src={src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            ref={(el) => {
+              if (videoAlreadyFailed(el)) markBroken(i);
+            }}
+            onError={() => markBroken(i)}
+            style={fillMedia}
+          />
+        );
+      }
+      return (
+        // eslint-disable-next-line @next/next/no-img-element -- arbitrary project asset URLs
+        <img
+          src={src}
+          alt={item.image?.alt || item.text || ""}
+          ref={(el) => {
+            if (imgAlreadyFailed(el)) markBroken(i);
+          }}
+          onError={() => markBroken(i)}
+          style={fillMedia}
+        />
+      );
+    }
+
+    return (
+      <div
+        style={{
+          ...fillMedia,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          background: "#111111",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "32px",
+            fontWeight: 500,
+            color: "#1e1e1e",
+            letterSpacing: "-1px",
+            fontFamily: "Inter",
+          }}
+        >
+          {initialsFor(item.text)}
+        </div>
+        <div
+          style={{
+            fontSize: "9px",
+            color: "#1a1a1a",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            fontFamily: "Inter",
+          }}
+        >
+          Preview soon
+        </div>
+      </div>
+    );
+  };
+
+  if (isMobile) {
+    return (
+      <div
+        className="no-scrollbar"
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          overflowX: "auto",
+          overflowY: "hidden",
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
+          gap: "12px",
+          padding: "0 20px 20px 20px",
+          width: "100%",
+          backgroundColor,
+        }}
+      >
+        {list.map((item, i) => {
+          return (
+            <div
+              key={i}
+              onClick={() => onItemClick?.(i)}
+              style={{
+                flexShrink: 0,
+                width: "75vw",
+                minWidth: "260px",
+                maxWidth: "320px",
+                height: "360px",
+                scrollSnapAlign: "start",
+                borderRadius: "14px",
+                background: "#141414",
+                // Written out per side rather than as the border shorthand.
+                // This node is reused when the layout swaps between the
+                // desktop list and this carousel, and the row it swaps with
+                // sets borderTop. React warns when it has to drop a shorthand
+                // while a conflicting longhand is set, so both sides of the
+                // swap stay on longhands.
+                borderTop: "0.5px solid #1e1e1e",
+                borderBottom: "0.5px solid #1e1e1e",
+                borderLeft: "0.5px solid #1e1e1e",
+                borderRight: "0.5px solid #1e1e1e",
+                position: "relative",
+                overflow: "hidden",
+                cursor: "none",
+                WebkitTapHighlightColor: "transparent",
+                touchAction: "manipulation",
+              }}
+            >
+              {/* Artwork */}
+              <div
+                style={{
+                  height: "65%",
+                  background: "#111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {renderCardMedia(item, i)}
+              </div>
+
+              {/* Caption */}
+              <div
+                style={{
+                  height: "35%",
+                  padding: "14px 16px",
+                  background: "#141414",
+                  borderTop: "0.5px solid #1a1a1a",
+                  boxSizing: "border-box",
+                  fontFamily: "Inter",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 500,
+                    color: "#ffffff",
+                    letterSpacing: "-0.4px",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {item.text}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "#555555",
+                    lineHeight: 1.4,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.image?.alt ?? item.description}
+                </div>
+              </div>
+
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: "12px",
+                  right: "14px",
+                  fontSize: "11px",
+                  color: "#1e1e1e",
+                  letterSpacing: "0.1em",
+                  fontFamily: "Inter",
+                }}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
       onMouseLeave={touch ? undefined : () => setHovered(null)}
@@ -108,7 +339,7 @@ export default function HoverImageReveal({
         display: "flex",
         flexDirection: "column",
         gap: `${rowGap}px`,
-        cursor: "none",
+        cursor: "default",
         ...style,
       }}
     >
@@ -117,8 +348,9 @@ export default function HoverImageReveal({
         const dimmed = hovered !== null && !isHovered;
 
         const src = item.image?.src;
-        const isVideo =
-          !!src && (src.endsWith(".mp4") || src.endsWith(".webm"));
+        // Shared with the carousel, so mov and ogg are recognised here too
+        // rather than falling through to an img that cannot render them.
+        const isVideo = !!src && isVideoSrc(src);
         const isImage = !!src && !isVideo && !src.startsWith("/videos");
         const broken = failedMedia[i];
         const mediaStyle: CSSProperties = {
@@ -140,7 +372,7 @@ export default function HoverImageReveal({
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              cursor: "none",
+              cursor: item.link ? "pointer" : "default",
               minHeight: touch ? "60px" : undefined,
               padding: touch ? "16px 0" : "20px 0 0 0",
               borderTop: i === 0 ? "0.5px solid #1a1a1a" : undefined,
@@ -213,16 +445,17 @@ export default function HoverImageReveal({
                 aria-hidden={!isHovered}
                 initial={false}
                 animate={{
-                  height: isHovered ? "300px" : "0px",
-                  marginTop: isHovered ? "16px" : "0px",
-                  opacity: isHovered ? 1 : 0,
+                  // Never opens on mobile: the carousel shows the media
+                  // instead, so the row has nothing to expand into.
+                  height: isMobile ? "0px" : isHovered ? "300px" : "0px",
+                  marginTop: isMobile ? "0px" : isHovered ? "16px" : "0px",
+                  opacity: isMobile ? 0 : isHovered ? 1 : 0,
                 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   position: "relative",
                   width: "100%",
                   overflow: "hidden",
-                  pointerEvents: "none",
                 }}
               >
                 <div
@@ -352,16 +585,20 @@ export default function HoverImageReveal({
                   {/* Details half */}
                   <div
                     style={{
+                      // Matches the media half exactly so the two stay flush.
                       height: "300px",
                       minWidth: 0,
                       background: "#0f0f0f",
-                      padding: "30px 36px",
+                      padding: "20px 24px",
                       boxSizing: "border-box",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "center",
+                      justifyContent: "flex-end",
                       fontFamily: "Inter",
-                      overflow: "auto",
+                      // Anything that does not fit is clipped. This was auto,
+                      // so the long descriptions grew a scrollbar inside the
+                      // panel and broke the row layout.
+                      overflow: "hidden",
                     }}
                   >
                     {item.status && (
@@ -378,17 +615,26 @@ export default function HoverImageReveal({
                       </div>
                     )}
 
-                    {item.description && (
+                    {/* The tagline, not the description. Descriptions run to
+                        a paragraph and their length varied the row height;
+                        the full text belongs to the overlay. */}
+                    {(item.image?.alt || item.description) && (
                       <p
                         style={{
-                          fontSize: "17px",
-                          lineHeight: 1.65,
-                          color: "#777777",
+                          fontSize: "13px",
+                          lineHeight: 1.5,
+                          color: "#666666",
+                          fontFamily: "Inter",
                           margin: "0 0 18px 0",
                           maxWidth: "520px",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 4,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
                       >
-                        {item.description}
+                        {item.image?.alt || item.description}
                       </p>
                     )}
 
@@ -400,7 +646,7 @@ export default function HoverImageReveal({
                           gap: "5px",
                         }}
                       >
-                        {item.tech.map((tech) => (
+                        {item.tech.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
                             style={{
@@ -418,6 +664,18 @@ export default function HoverImageReveal({
                         ))}
                       </div>
                     )}
+
+                    <div
+                      style={{
+                        marginTop: "14px",
+                        fontSize: "9px",
+                        color: "#3a3a3a",
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Click to view details
+                    </div>
                   </div>
                 </div>
               </motion.div>

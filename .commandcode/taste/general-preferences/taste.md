@@ -3,7 +3,7 @@
 - Uses Google Fonts (Inter) with system font fallbacks. Confidence: 0.8
 - Dark mode only — explicitly rejects light mode and light mode toggles. Confidence: 0.95
 - Accent/signal colors should be used sparingly (e.g. hover states, highlights, hyperlinks) — never as button fills or backgrounds. Confidence: 0.9
-- Prefers barely-visible decorative UI elements (e.g. hairline grid overlays at ~3% opacity) for subtle texture. Confidence: 0.8
+- Prefers barely-visible decorative UI elements (e.g. hairline grid overlays at ~1.8% large-grid / ~0.8% small-grid opacity) for subtle texture — "a whisper not a statement." Confidence: 0.85
 - CTA links should be plain text with icon prefixes, not pill buttons or heavy UI components. Confidence: 0.9
 - Uses CSS `clamp()` for fluid responsive typography with specific min/max bounds. Confidence: 0.85
 - Prefers editorial 12-column CSS Grid layouts for hero/landing sections. Confidence: 0.8
@@ -16,7 +16,7 @@
 - Dual styling strategy: CSS classes handle responsive layout/behavior (grid-to-flex, padding, sizing), inline styles handle base visual properties (colors, fonts, borders). Confidence: 0.85
 - Uses `!important` in CSS media query overrides when responsive adjustments must win over inline styles. Confidence: 0.8
 - Uses `"use client"` directive for interactive components in Next.js App Router. Confidence: 0.8
-- Uses conventional-commit-style prefixes: `init:`, `feat:`, `fix:`, `refactor:`. Confidence: 0.9
+- Uses conventional-commit-style prefixes: `init:`, `feat:`, `fix:`, `refactor:`, `revert:`. Confidence: 0.9
 - Explicitly does NOT want co-author trailers (`Co-Authored-By`) on commits. Confidence: 0.95
 - Structures commits in logical stages: scaffold → feature → responsive/polish. Confidence: 0.8
 - Expects a build verification (`npm run build`) after each logical change before committing, to catch regressions early. Confidence: 0.85
@@ -53,10 +53,26 @@
 - Documents action-to-cue mapping as a comment block at the top of the SFX module file. Confidence: 0.85
 - Sound preference toggle (SFXToggle) placed in the contact/footer section below social links, with `aria-label` describing current state and visible text label. Confidence: 0.85
 - Uses Aceternity UI as a component library for animated/interactive UI primitives (e.g. dotted glow background). Installs via shadcn CLI or direct registry JSON fetch. Confidence: 0.85
-- Prefers canvas-based animated backgrounds (e.g. DottedGlowBackground) over CSS pseudo-element textures for section backgrounds -- canvas gives per-dot shimmer/glow animation. Confidence: 0.85
+- Prefers canvas-based animated backgrounds (e.g. DottedGlowBackground) over CSS pseudo-element textures for section backgrounds -- canvas gives per-dot shimmer/glow animation. Actively reverted a CSS grid texture overlay in favor of clean dark canvas, reinforcing this preference. Confidence: 0.9
 - Performance-tiered canvas animations: interactive sections (Specializations, Contact) get full animation speed; passive/scroll-heavy sections (Projects, About, Footer) get reduced speed (speedMin 0.1, speedMax 0.4) to reduce GPU load. Confidence: 0.85
 - Requires a z-index audit after adding absolutely-positioned background layers -- all section content must be verified at z-index 1+ to render above z-index 0 backgrounds. Confidence: 0.9
 - Multi-commit strategy for component swaps: (1) install new component, (2) remove old component + cleanup, (3) apply new component to sections. Each commit is atomic and buildable. Confidence: 0.9
 - Uses CSS radial gradient mask utilities for directional glow concentration on section backgrounds -- each section gets a unique mask direction (top-right, bottom-left, center, etc.) matching its visual energy direction. Confidence: 0.85
 - Section background opacity and speed are tuned per-section based on importance: hero-adjacent sections get higher opacity (0.65), footer gets lowest (0.35). Confidence: 0.8
 - Extracts tunable values into a top-of-file config object (e.g. `MEDIA_CONFIG`) with a detailed HOW TO USE comment block, so non-technical users can edit images, scales, and positions without touching component logic. Confidence: 0.85
+- Prefers Lenis (`@studio-freight/lenis`) for smooth scroll, with named constants at the top of the provider component for easy tuning (e.g. `LENIS_DURATION`, `LENIS_TOUCH_MULTIPLIER`). Confidence: 0.9
+- When using Lenis with Framer Motion, re-dispatches `scroll` events via `lenis.on("scroll", () => window.dispatchEvent(new Event("scroll")))` so `useScroll` hooks continue working. Confidence: 0.9
+- Prefers React Three Fiber with conservative Canvas settings: `antialias: false`, `alpha: true`, `powerPreference: "low-power"`, and `pointerEvents: "none"` on both wrapper and Canvas to avoid blocking interactions. Confidence: 0.9
+- Framer Motion convention: always provide a matching `initial` prop for every animated SVG/CSS property (strokeOpacity, opacity, fill, etc.) — use the falsy/default value as the initial. Prevents console warnings and ensures clean first-render state. Confidence: 0.9
+- Responsive performance tuning uses JavaScript viewport checks (e.g. `window.innerWidth < 768`) for resource count adjustments (particles, objects), not CSS media queries — because these affect runtime compute, not layout. Confidence: 0.85
+- Prefers `next/dynamic` with `ssr: false` wrapped in a dedicated `"use client"` wrapper component (e.g. `ClientParticleField`) when a Server Component layout needs client-only libraries like Three.js. Confidence: 0.9
+- Prefers background canvas/WebGL layers at `z-index: 0` (fixed, full-viewport, `pointerEvents: "none"`) with all content sections verified at `z-index: 1+`. Confidence: 0.9
+- Mobile overlay back-button pattern: uses History API (`pushState`/`popstate`) to intercept Android hardware back button and iOS swipe-back gesture, closing overlays instead of navigating away from the page. `closeOverlay()` calls `history.back()` when cleaning up via X/Escape. Confidence: 0.9
+- Overlays that must break out of parent stacking contexts (e.g. `transform`, `sticky` + `z-index`) should use React `createPortal` to render into `document.body`, bypassing all ancestor stacking contexts. Confidence: 0.9
+- Overlay z-index convention: 9999 for primary overlays to guarantee they beat all other stacking contexts in the app. Confidence: 0.85
+- When a deprecation warning originates from a third-party dependency (not user code), suppress it with a targeted `console.warn` override (filtering by message substring) at module level rather than attempting to fix the dependency's internals. Confidence: 0.85
+- Overlay content panels must have `overflow: hidden` on the container and `overflow: auto` on scrollable inner regions to prevent media (images, video) from visually escaping their bounds. Confidence: 0.85
+- Mobile touch target specs for interactive rows: `min-height: 60px`, `touch-action: manipulation` (kills 300ms tap delay), `-webkit-tap-highlight-color: transparent`. Confidence: 0.85
+- When using a custom cursor overlay (e.g. custom blue arrow), enforces `cursor: "none"` on all interactive containers and replaces every instance of `cursor: "pointer"`, `cursor: "default"`, `cursor: "auto"` in inline styles with `cursor: "none"` — no exceptions. Media/expand blocks within hover rows get `pointerEvents: "none"` to avoid stealing hover events from parent rows. In CSS, also adds explicit element-specific overrides (`a`, `button`, `[role="button"]`) alongside the `*` rule because some browsers apply UA stylesheets that beat the `*` selector. Confidence: 0.9
+- Mobile overlay content panels must be scrollable: `overflowY: auto`, `-webkit-overflow-scrolling: touch`, `maxHeight: 100%` on the overlay's content container. Confidence: 0.85
+- Lenis scroll lock during overlays: must call `lenis.stop()` (or use the project's `lockScroll()` equivalent) when an overlay opens and `lenis.start()` / `unlockScroll()` when it closes, to prevent Lenis from re-enabling scroll despite `body overflow: hidden`. Confidence: 0.9
