@@ -5,12 +5,8 @@ import { useEffect, useRef, useState } from "react"
 export function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null)
   const posRef = useRef({ x: -100, y: -100 })
-  const [visible, setVisible] = useState(false)
-  const [scrolling, setScrolling] = useState(false)
+  const [active, setActive] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  )
   const rafRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -23,19 +19,12 @@ export function CustomCursor() {
   useEffect(() => {
     const moveCursor = (e: MouseEvent) => {
       posRef.current = { x: e.clientX, y: e.clientY }
-      if (!visible) setVisible(true)
+      setActive(true)
     }
 
     const handleScroll = () => {
-      setScrolling(true)
-      clearTimeout(scrollTimerRef.current)
-      scrollTimerRef.current = setTimeout(() => {
-        setScrolling(false)
-      }, 0)
+      setActive(false)
     }
-
-    const handleLeave = () => setVisible(false)
-    const handleEnter = () => setVisible(true)
 
     const loop = () => {
       if (cursorRef.current) {
@@ -48,22 +37,17 @@ export function CustomCursor() {
     rafRef.current = requestAnimationFrame(loop)
     window.addEventListener("mousemove", moveCursor)
     window.addEventListener("scroll", handleScroll, { passive: true })
-    document.documentElement.addEventListener("mouseleave", handleLeave)
-    document.documentElement.addEventListener("mouseenter", handleEnter)
 
     return () => {
       window.removeEventListener("mousemove", moveCursor)
       window.removeEventListener("scroll", handleScroll)
-      document.documentElement.removeEventListener("mouseleave", handleLeave)
-      document.documentElement.removeEventListener("mouseenter", handleEnter)
-      clearTimeout(scrollTimerRef.current)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [visible])
+  }, [])
 
   if (isMobile) return null
 
-  const isHidden = !visible || scrolling
+  const isHidden = !active
 
   return (
     <div
@@ -77,9 +61,9 @@ export function CustomCursor() {
         pointerEvents: "none",
         willChange: "transform",
         opacity: isHidden ? 0 : 1,
-        transition: scrolling
-          ? "opacity 0.15s ease-out"
-          : "opacity 0.1s ease-in",
+        transition: isHidden
+          ? "opacity 0.12s ease-out"
+          : "opacity 0.08s ease-in",
       }}
     >
       <div
