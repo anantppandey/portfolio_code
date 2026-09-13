@@ -585,16 +585,20 @@ export default function HoverImageReveal({
                   {/* Details half */}
                   <div
                     style={{
+                      // Matches the media half exactly so the two stay flush.
                       height: "300px",
                       minWidth: 0,
                       background: "#0f0f0f",
-                      padding: "30px 36px",
+                      padding: "20px 24px",
                       boxSizing: "border-box",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "center",
+                      justifyContent: "flex-end",
                       fontFamily: "Inter",
-                      overflow: "auto",
+                      // Anything that does not fit is clipped. This was auto,
+                      // so the long descriptions grew a scrollbar inside the
+                      // panel and broke the row layout.
+                      overflow: "hidden",
                     }}
                   >
                     {item.status && (
@@ -611,17 +615,26 @@ export default function HoverImageReveal({
                       </div>
                     )}
 
-                    {item.description && (
+                    {/* The tagline, not the description. Descriptions run to
+                        a paragraph and their length varied the row height;
+                        the full text belongs to the overlay. */}
+                    {(item.image?.alt || item.description) && (
                       <p
                         style={{
-                          fontSize: "17px",
-                          lineHeight: 1.65,
-                          color: "#777777",
+                          fontSize: "13px",
+                          lineHeight: 1.5,
+                          color: "#666666",
+                          fontFamily: "Inter",
                           margin: "0 0 18px 0",
                           maxWidth: "520px",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 4,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
                       >
-                        {item.description}
+                        {item.image?.alt || item.description}
                       </p>
                     )}
 
@@ -633,7 +646,7 @@ export default function HoverImageReveal({
                           gap: "5px",
                         }}
                       >
-                        {item.tech.map((tech) => (
+                        {item.tech.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
                             style={{
@@ -651,6 +664,18 @@ export default function HoverImageReveal({
                         ))}
                       </div>
                     )}
+
+                    <div
+                      style={{
+                        marginTop: "14px",
+                        fontSize: "9px",
+                        color: "#3a3a3a",
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Click to view details
+                    </div>
                   </div>
                 </div>
               </motion.div>
