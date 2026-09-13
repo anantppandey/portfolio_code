@@ -8,6 +8,9 @@ const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
 
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
+/** Sources a <video> can decode. Anything else is handed to an <img>. */
+const isVideoSrc = (src: string) => /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(src);
+
 /**
  * Media rendered on the server can fail before hydration attaches onError,
  * and the error event does not fire twice. These read the element's settled
@@ -120,6 +123,92 @@ export default function HoverImageReveal({
       .slice(0, 2)
       .toUpperCase();
 
+  const fillMedia: CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: "center",
+    display: "block",
+  };
+
+  /**
+   * Artwork for one carousel card: the project's own clip when it is a format
+   * a video element can decode, its still otherwise, and the title initials
+   * when the source is missing or fails to load.
+   */
+  const renderCardMedia = (item: HoverImageRevealItem, i: number) => {
+    const src = item.image?.src ?? "";
+    const broken = failedMedia[i];
+
+    if (src && !broken) {
+      if (isVideoSrc(src)) {
+        return (
+          <video
+            src={src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            ref={(el) => {
+              if (videoAlreadyFailed(el)) markBroken(i);
+            }}
+            onError={() => markBroken(i)}
+            style={fillMedia}
+          />
+        );
+      }
+      return (
+        // eslint-disable-next-line @next/next/no-img-element -- arbitrary project asset URLs
+        <img
+          src={src}
+          alt={item.image?.alt || item.text || ""}
+          ref={(el) => {
+            if (imgAlreadyFailed(el)) markBroken(i);
+          }}
+          onError={() => markBroken(i)}
+          style={fillMedia}
+        />
+      );
+    }
+
+    return (
+      <div
+        style={{
+          ...fillMedia,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          background: "#111111",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "32px",
+            fontWeight: 500,
+            color: "#1e1e1e",
+            letterSpacing: "-1px",
+            fontFamily: "Inter",
+          }}
+        >
+          {initialsFor(item.text)}
+        </div>
+        <div
+          style={{
+            fontSize: "9px",
+            color: "#1a1a1a",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            fontFamily: "Inter",
+          }}
+        >
+          Preview soon
+        </div>
+      </div>
+    );
+  };
+
   if (isMobile) {
     return (
       <div
@@ -139,15 +228,6 @@ export default function HoverImageReveal({
         }}
       >
         {list.map((item, i) => {
-          const src = item.image?.src;
-          const isVideo =
-            !!src && (src.endsWith(".mp4") || src.endsWith(".webm"));
-          // Cards use stills only. A card is a thumbnail, and pulling a clip
-          // per card on a phone connection is not worth the bytes.
-          const poster =
-            !!src && !isVideo && !src.startsWith("/videos") ? src : null;
-          const artwork = poster ?? (gifFailed ? null : PLACEHOLDER_GIF);
-
           return (
             <div
               key={i}
@@ -189,37 +269,7 @@ export default function HoverImageReveal({
                   overflow: "hidden",
                 }}
               >
-                {artwork ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- arbitrary project asset URLs
-                  <img
-                    src={artwork}
-                    alt={item.image?.alt || item.text || ""}
-                    ref={(el) => {
-                      if (imgAlreadyFailed(el) && !poster) setGifFailed(true);
-                    }}
-                    onError={() => {
-                      if (!poster) setGifFailed(true);
-                    }}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                      display: "block",
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{
-                      fontSize: "32px",
-                      fontWeight: 500,
-                      color: "#1e1e1e",
-                      fontFamily: "Inter",
-                    }}
-                  >
-                    {initialsFor(item.text)}
-                  </span>
-                )}
+                {renderCardMedia(item, i)}
               </div>
 
               {/* Caption */}
@@ -298,8 +348,9 @@ export default function HoverImageReveal({
         const dimmed = hovered !== null && !isHovered;
 
         const src = item.image?.src;
-        const isVideo =
-          !!src && (src.endsWith(".mp4") || src.endsWith(".webm"));
+        // Shared with the carousel, so mov and ogg are recognised here too
+        // rather than falling through to an img that cannot render them.
+        const isVideo = !!src && isVideoSrc(src);
         const isImage = !!src && !isVideo && !src.startsWith("/videos");
         const broken = failedMedia[i];
         const mediaStyle: CSSProperties = {
