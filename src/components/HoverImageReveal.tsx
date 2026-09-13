@@ -62,6 +62,18 @@ export default function HoverImageReveal({
    * once this settles to false, which keeps touch devices from fetching any clip.
    */
   const [isTouch, setIsTouch] = useState<boolean | null>(null);
+  /**
+   * Width rather than hover capability: the carousel is a layout decision, so
+   * it follows the breakpoint. Starts false so the server render is stable.
+   */
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   /** Indices whose video or image failed to load, keyed so each is retried once. */
   const [failedMedia, setFailedMedia] = useState<Record<number, boolean>>({});
 
@@ -98,6 +110,166 @@ export default function HoverImageReveal({
   /** Touch: no hover expand at all. Media waits for a confirmed pointer device. */
   const touch = isTouch === true;
   const showMedia = isTouch === false;
+
+  /** Two letters from the title, the fallback when a card has no artwork. */
+  const initialsFor = (text?: string) =>
+    (text ?? "")
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+  if (isMobile) {
+    return (
+      <div
+        className="no-scrollbar"
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          overflowX: "auto",
+          overflowY: "hidden",
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
+          gap: "12px",
+          padding: "0 20px 20px 20px",
+          width: "100%",
+          backgroundColor,
+        }}
+      >
+        {list.map((item, i) => {
+          const src = item.image?.src;
+          const isVideo =
+            !!src && (src.endsWith(".mp4") || src.endsWith(".webm"));
+          // Cards use stills only. A card is a thumbnail, and pulling a clip
+          // per card on a phone connection is not worth the bytes.
+          const poster =
+            !!src && !isVideo && !src.startsWith("/videos") ? src : null;
+          const artwork = poster ?? (gifFailed ? null : PLACEHOLDER_GIF);
+
+          return (
+            <div
+              key={i}
+              onClick={() => onItemClick?.(i)}
+              style={{
+                flexShrink: 0,
+                width: "75vw",
+                minWidth: "260px",
+                maxWidth: "320px",
+                height: "360px",
+                scrollSnapAlign: "start",
+                borderRadius: "14px",
+                background: "#141414",
+                border: "0.5px solid #1e1e1e",
+                position: "relative",
+                overflow: "hidden",
+                cursor: "none",
+                WebkitTapHighlightColor: "transparent",
+                touchAction: "manipulation",
+              }}
+            >
+              {/* Artwork */}
+              <div
+                style={{
+                  height: "65%",
+                  background: "#111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {artwork ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- arbitrary project asset URLs
+                  <img
+                    src={artwork}
+                    alt={item.image?.alt || item.text || ""}
+                    ref={(el) => {
+                      if (imgAlreadyFailed(el) && !poster) setGifFailed(true);
+                    }}
+                    onError={() => {
+                      if (!poster) setGifFailed(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "32px",
+                      fontWeight: 500,
+                      color: "#1e1e1e",
+                      fontFamily: "Inter",
+                    }}
+                  >
+                    {initialsFor(item.text)}
+                  </span>
+                )}
+              </div>
+
+              {/* Caption */}
+              <div
+                style={{
+                  height: "35%",
+                  padding: "14px 16px",
+                  background: "#141414",
+                  borderTop: "0.5px solid #1a1a1a",
+                  boxSizing: "border-box",
+                  fontFamily: "Inter",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 500,
+                    color: "#ffffff",
+                    letterSpacing: "-0.4px",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {item.text}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "#555555",
+                    lineHeight: 1.4,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.image?.alt ?? item.description}
+                </div>
+              </div>
+
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: "12px",
+                  right: "14px",
+                  fontSize: "11px",
+                  color: "#1e1e1e",
+                  letterSpacing: "0.1em",
+                  fontFamily: "Inter",
+                }}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -213,9 +385,11 @@ export default function HoverImageReveal({
                 aria-hidden={!isHovered}
                 initial={false}
                 animate={{
-                  height: isHovered ? "300px" : "0px",
-                  marginTop: isHovered ? "16px" : "0px",
-                  opacity: isHovered ? 1 : 0,
+                  // Never opens on mobile: the carousel shows the media
+                  // instead, so the row has nothing to expand into.
+                  height: isMobile ? "0px" : isHovered ? "300px" : "0px",
+                  marginTop: isMobile ? "0px" : isHovered ? "16px" : "0px",
+                  opacity: isMobile ? 0 : isHovered ? 1 : 0,
                 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                 style={{
