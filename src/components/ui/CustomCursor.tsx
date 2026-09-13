@@ -82,24 +82,49 @@ export function CustomCursor() {
     >
       <div
         style={{
-          transform: "translate(-2px, -2px)",
+          transform: "translate(-4px, -4px)",
         }}
       >
         <svg
-          width="28"
-          height="28"
-          viewBox="0 0 28 28"
+          width="32"
+          height="32"
+          viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           style={{
             filter:
-              "drop-shadow(0 0 6px rgba(0,153,255,0.85)) drop-shadow(0 0 14px rgba(0,153,255,0.35))",
+              "drop-shadow(0 0 8px rgba(0,153,255,0.7)) drop-shadow(0 0 20px rgba(0,153,255,0.3))",
             display: "block",
           }}
         >
+          <defs>
+            <linearGradient
+              id="cursorGradient"
+              x1="20"
+              y1="10"
+              x2="60"
+              y2="90"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor="#0099ff" />
+              <stop offset="100%" stopColor="#6644ff" />
+            </linearGradient>
+          </defs>
           <path
-            d="M4.5 2.5C3.4 1.6 2 2.4 2 3.8L2 22.5C2 24 3.8 24.6 4.7 23.5L9.8 17.2L15.2 24.6C15.8 25.4 16.9 25.2 17.4 24.4L19.4 20.4C19.7 19.7 19.5 18.9 18.9 18.4L13.6 14.9L21.8 12C23 11.6 23 9.9 21.8 9.5L5 2.8C4.8 2.7 4.6 2.6 4.5 2.5Z"
-            fill="#0099ff"
+            d="M15 8
+               C12 5 8 7 8 11
+               L8 78
+               C8 83 14 85 17 81
+               L36 57
+               L55 83
+               C57 86 61 85 63 82
+               L70 68
+               C71 65 70 62 68 60
+               L49 48
+               L82 38
+               C87 36 87 29 82 27
+               Z"
+            fill="url(#cursorGradient)"
           />
         </svg>
       </div>
