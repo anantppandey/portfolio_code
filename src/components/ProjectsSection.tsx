@@ -94,7 +94,25 @@ const projects = [
     github: "",
     initials: "CW",
     videoSrc: "/media/gif/wallet.mp4",
-  }
+  },
+  {
+    title: "My First Project",
+    status: "Personal",
+    tagline: "The project that started my robotics and engineering journey",
+    description:
+      "My first robotics project, built in my first year of college, was a four-fingered robotic hand made entirely from cardboard. I designed and built the mechanism and independently taught myself Arduino, Raspberry Pi, servo control, and Bluetooth communication to bring it to life. Closing my own hand completed simple circuits that triggered the robotic hand to close wirelessly.",
+    tech: [
+      "Arduino",
+      "Raspberry Pi",
+      "Electronics",
+      "Mechanical Design",
+      "Prototyping",
+      "Communication",
+    ],
+    github: "",
+    initials: "FP",
+    videoSrc: "/media/gif/first_project.mp4",
+  },
 ];
 
 export default function ProjectsSection() {
