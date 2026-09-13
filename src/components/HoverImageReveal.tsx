@@ -20,7 +20,7 @@ const videoAlreadyFailed = (el: HTMLVideoElement | null) =>
 
 export type HoverImageRevealItem = {
   text?: string;
-  image?: { src?: string; srcSet?: string; alt?: string };
+  image?: { src?: string; alt?: string };
   link?: string;
   description?: string;
   status?: string;
