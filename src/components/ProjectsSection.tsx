@@ -301,6 +301,7 @@ export default function ProjectsSection() {
                 zIndex: 9999,
                 background: "rgba(9,9,9,0.95)",
                 backdropFilter: "blur(20px)",
+                cursor: "none",
               }}
             >
             <motion.div
