@@ -465,7 +465,7 @@ export default function HoverImageReveal({
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "1px",
-                    background: "#262626",
+                    background: "#0d0d0d",
                     borderRadius: "10px",
                     overflow: "hidden",
                   }}
@@ -585,56 +585,55 @@ export default function HoverImageReveal({
                   {/* Details half */}
                   <div
                     style={{
-                      // Matches the media half exactly so the two stay flush.
-                      height: "300px",
-                      minWidth: 0,
-                      background: "#0f0f0f",
-                      padding: "20px 24px",
+                      flex: 1,
+                      height: "100%",
+                      padding: "20px 24px 20px 20px",
+                      // Border box keeps the generous padding from pushing the
+                      // panel past its 300px grid row and clipping the text.
                       boxSizing: "border-box",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "flex-end",
-                      fontFamily: "Inter",
-                      // Anything that does not fit is clipped. This was auto,
-                      // so the long descriptions grew a scrollbar inside the
-                      // panel and broke the row layout.
+                      justifyContent: "center",
+                      gap: "10px",
                       overflow: "hidden",
+                      background: "#0d0d0d",
+                      fontFamily: "Inter",
                     }}
                   >
                     {item.status && (
                       <div
                         style={{
-                          fontSize: "9px",
+                          fontSize: "11px",
+                          fontWeight: 500,
                           color: "#0099ff",
-                          letterSpacing: "0.16em",
+                          letterSpacing: "0.14em",
                           textTransform: "uppercase",
-                          marginBottom: "12px",
+                          fontFamily: "Inter",
+                          lineHeight: 1,
                         }}
                       >
                         {item.status}
                       </div>
                     )}
 
-                    {/* The tagline, not the description. Descriptions run to
-                        a paragraph and their length varied the row height;
-                        the full text belongs to the overlay. */}
-                    {(item.image?.alt || item.description) && (
+                    {item.description && (
                       <p
                         style={{
                           fontSize: "13px",
-                          lineHeight: 1.5,
-                          color: "#666666",
+                          fontWeight: 400,
+                          color: "#cccccc",
+                          lineHeight: 1.55,
                           fontFamily: "Inter",
-                          margin: "0 0 18px 0",
-                          maxWidth: "520px",
+                          overflow: "hidden",
                           display: "-webkit-box",
                           WebkitLineClamp: 4,
                           WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
                           textOverflow: "ellipsis",
+                          margin: 0,
+                          padding: 0,
                         }}
                       >
-                        {item.image?.alt || item.description}
+                        {item.description}
                       </p>
                     )}
 
@@ -644,19 +643,22 @@ export default function HoverImageReveal({
                           display: "flex",
                           flexWrap: "wrap",
                           gap: "5px",
+                          marginTop: "2px",
                         }}
                       >
                         {item.tech.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
                             style={{
-                              padding: "6px 11px",
-                              border: "0.5px solid #292929",
-                              borderRadius: "999px",
-                              color: "#777777",
-                              fontSize: "9px",
-                              letterSpacing: "0.02em",
+                              background: "#1a1a1a",
+                              border: "0.5px solid #262626",
+                              borderRadius: "100px",
+                              padding: "4px 10px",
+                              fontSize: "10px",
+                              color: "#666666",
+                              fontFamily: "Inter",
                               whiteSpace: "nowrap",
+                              lineHeight: 1.4,
                             }}
                           >
                             {tech}
