@@ -467,7 +467,7 @@ export default function HoverImageReveal({
                   {/* Media panel: a tall narrow card inset 12px from the top and bottom. */}
                   <div
                     style={{
-                      width: "200px",
+                      width: "40%",
                       flexShrink: 0,
                       alignSelf: "stretch",
                       margin: "12px 0",
