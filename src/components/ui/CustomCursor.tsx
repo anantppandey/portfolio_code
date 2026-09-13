@@ -68,28 +68,28 @@ export function CustomCursor() {
     >
       <div
         style={{
-          transform: "translate(-4px, -4px)",
+          transform: "translate(-2px, -2px)",
         }}
       >
         <svg
-          width="32"
-          height="32"
-          viewBox="0 0 100 100"
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           style={{
             filter:
-              "drop-shadow(0 0 8px rgba(0,153,255,0.7)) drop-shadow(0 0 20px rgba(0,153,255,0.3))",
+              "drop-shadow(0 0 6px rgba(0,153,255,0.6)) drop-shadow(0 0 16px rgba(100,68,255,0.25))",
             display: "block",
           }}
         >
           <defs>
             <linearGradient
-              id="cursorGradient"
-              x1="20"
-              y1="10"
-              x2="60"
-              y2="90"
+              id="cursorGrad"
+              x1="6"
+              y1="4"
+              x2="22"
+              y2="34"
               gradientUnits="userSpaceOnUse"
             >
               <stop offset="0%" stopColor="#0099ff" />
@@ -97,20 +97,26 @@ export function CustomCursor() {
             </linearGradient>
           </defs>
           <path
-            d="M15 8
-               C12 5 8 7 8 11
-               L8 78
-               C8 83 14 85 17 81
-               L36 57
-               L55 83
-               C57 86 61 85 63 82
-               L70 68
-               C71 65 70 62 68 60
-               L49 48
-               L82 38
-               C87 36 87 29 82 27
-               Z"
-            fill="url(#cursorGradient)"
+            d="
+              M6 4
+              C5 3 3.5 3.5 3.5 5
+              L3.5 28
+              C3.5 29.8 5.8 30.5 6.9 29.1
+              L12 22.5
+              C12.5 21.9 13.1 21.6 13.8 21.6
+              L14.4 21.6
+              C15.1 21.6 15.8 21.9 16.2 22.4
+              L20.8 28.8
+              C21.6 29.9 23.2 29.6 23.7 28.3
+              L25.4 24.1
+              C25.7 23.3 25.4 22.4 24.7 21.9
+              L19.2 18.4
+              C18.4 17.9 18.4 16.8 19.2 16.3
+              L30.5 10.8
+              C31.8 10.2 31.8 8.3 30.5 7.7
+              Z
+            "
+            fill="url(#cursorGrad)"
           />
         </svg>
       </div>
