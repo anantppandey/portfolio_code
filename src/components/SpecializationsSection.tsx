@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { lockScroll, unlockScroll } from "@/components/SmoothScroll";
 
@@ -579,13 +580,47 @@ export default function SpecializationsSection() {
     }
   }, [hoveredSegment]);
 
+  /**
+   * Closing pops the history entry the overlay pushed, so the URL does not
+   * accumulate dead entries when it is dismissed by the X or by Escape. Only
+   * safe to read window here because every caller is an event handler.
+   */
+  const closeSpecOverlay = useCallback(() => {
+    setSelectedProject(null);
+    if (window.history.state?.specOverlayOpen) {
+      window.history.back();
+    }
+  }, []);
+
+  // A history entry per open overlay, so the hardware back button on mobile
+  // dismisses the overlay instead of leaving the page.
+  useEffect(() => {
+    if (selectedProject) {
+      window.history.pushState(
+        { specOverlayOpen: true },
+        "",
+        window.location.href,
+      );
+    }
+  }, [selectedProject]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selectedProject) {
+        setSelectedProject(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedProject]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedProject(null);
+      if (e.key === "Escape") closeSpecOverlay();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [closeSpecOverlay]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -1094,24 +1129,27 @@ export default function SpecializationsSection() {
       {/* Full screen project overlay. Kept outside the scaled pie wrapper: a
           transformed ancestor would become the containing block for the fixed
           positioning and trap the overlay inside the pie. */}
-      <AnimatePresence>
-        {selectedProject && (
+      {typeof window !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {selectedProject && (
           <motion.div
             className="project-overlay-container"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            onClick={() => setSelectedProject(null)}
+            onClick={closeSpecOverlay}
             role="dialog"
             aria-modal="true"
             aria-label={selectedProject.title}
             style={{
               position: "fixed",
               inset: 0,
-              zIndex: 300,
+              zIndex: 9999,
               background: "rgba(9,9,9,0.96)",
               backdropFilter: "blur(20px)",
+              cursor: "none",
             }}
           >
             <motion.div
@@ -1207,7 +1245,7 @@ export default function SpecializationsSection() {
               >
                 <button
                   className="project-overlay-close"
-                  onClick={() => setSelectedProject(null)}
+                  onClick={closeSpecOverlay}
                   aria-label="Close project details"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = "#0099ff";
@@ -1404,8 +1442,10 @@ export default function SpecializationsSection() {
               </div>
             </motion.div>
           </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </section>
   );
 }
