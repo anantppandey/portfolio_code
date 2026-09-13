@@ -108,7 +108,7 @@ export default function HoverImageReveal({
         display: "flex",
         flexDirection: "column",
         gap: `${rowGap}px`,
-        cursor: "none",
+        cursor: "default",
         ...style,
       }}
     >
@@ -140,7 +140,7 @@ export default function HoverImageReveal({
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              cursor: "none",
+              cursor: item.link ? "pointer" : "default",
               minHeight: touch ? "60px" : undefined,
               padding: touch ? "16px 0" : "20px 0 0 0",
               borderTop: i === 0 ? "0.5px solid #1a1a1a" : undefined,
@@ -222,7 +222,6 @@ export default function HoverImageReveal({
                   position: "relative",
                   width: "100%",
                   overflow: "hidden",
-                  pointerEvents: "none",
                 }}
               >
                 <div
