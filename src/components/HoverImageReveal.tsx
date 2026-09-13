@@ -3,6 +3,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
 
+/** Stand-in footage for every project until the real clips exist. */
+const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
+
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
 /** Sources a <video> can decode. Anything else is handed to an <img>. */
@@ -89,6 +92,8 @@ export default function HoverImageReveal({
     setFailedMedia((prev) =>
       prev[index] ? prev : { ...prev, [index]: true },
     );
+  /** One flag for all rows: they share the same stand-in gif URL. */
+  const [gifFailed, setGifFailed] = useState(false);
 
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
@@ -342,18 +347,19 @@ export default function HoverImageReveal({
         const isHovered = hovered === i;
         const dimmed = hovered !== null && !isHovered;
 
-        const src = item.image?.src ?? "";
+        const src = item.image?.src;
         // Shared with the carousel, so mov and ogg are recognised here too
         // rather than falling through to an img that cannot render them.
         const isVideo = !!src && isVideoSrc(src);
+        const isImage = !!src && !isVideo && !src.startsWith("/videos");
         const broken = failedMedia[i];
-        const expandMediaStyle: CSSProperties = {
+        const mediaStyle: CSSProperties = {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          objectPosition: "center",
+          objectPosition: "center top",
           display: "block",
-          borderRadius: "8px",
+          borderRadius: "10px",
         };
 
         return (
@@ -441,7 +447,7 @@ export default function HoverImageReveal({
                 animate={{
                   // Never opens on mobile: the carousel shows the media
                   // instead, so the row has nothing to expand into.
-                  height: isMobile ? "0px" : isHovered ? "280px" : "0px",
+                  height: isMobile ? "0px" : isHovered ? "300px" : "0px",
                   marginTop: isMobile ? "0px" : isHovered ? "16px" : "0px",
                   opacity: isMobile ? 0 : isHovered ? 1 : 0,
                 }}
@@ -454,26 +460,27 @@ export default function HoverImageReveal({
               >
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    height: "280px",
+                    width: "100%",
+                    height: "300px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1px",
+                    background: "#262626",
+                    borderRadius: "10px",
                     overflow: "hidden",
-                    gap: 0,
-                    background: "#0d0d0d",
-                    borderRadius: "0 0 10px 10px",
-                    marginTop: 0,
                   }}
                 >
-                  {/* Media panel: a tall narrow card inset 12px from the top and bottom. */}
+                  {/* Media half — contain keeps the entire image/video visible. */}
                   <div
                     style={{
-                      width: "200px",
-                      flexShrink: 0,
-                      alignSelf: "stretch",
-                      margin: "12px 0",
                       position: "relative",
+                      minWidth: 0,
+                      height: "300px",
+                      background: "#111111",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       overflow: "hidden",
-                      borderRadius: "8px",
                     }}
                   >
                     {isVideo && !broken ? (
@@ -487,9 +494,15 @@ export default function HoverImageReveal({
                           if (videoAlreadyFailed(el)) markBroken(i);
                         }}
                         onError={() => markBroken(i)}
-                        style={expandMediaStyle}
+                        style={{
+                          ...mediaStyle,
+                          height: "100%",
+                          objectFit: "contain",
+                          objectPosition: "center",
+                          borderRadius: 0,
+                        }}
                       />
-                    ) : src && !broken ? (
+                    ) : isImage && !broken ? (
                       // eslint-disable-next-line @next/next/no-img-element -- arbitrary project asset URLs
                       <img
                         src={src}
@@ -498,35 +511,67 @@ export default function HoverImageReveal({
                           if (imgAlreadyFailed(el)) markBroken(i);
                         }}
                         onError={() => markBroken(i)}
-                        style={expandMediaStyle}
+                        style={{
+                          ...mediaStyle,
+                          height: "100%",
+                          objectFit: "contain",
+                          objectPosition: "center",
+                          borderRadius: 0,
+                        }}
+                      />
+                    ) : !gifFailed ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- remote gif; next/image would need a config change
+                      <img
+                        src={PLACEHOLDER_GIF}
+                        alt={`${item.text ?? "Project"} preview`}
+                        loading="eager"
+                        ref={(el) => {
+                          if (imgAlreadyFailed(el)) setGifFailed(true);
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          setGifFailed(true);
+                        }}
+                        style={{
+                          ...mediaStyle,
+                          height: "100%",
+                          objectFit: "contain",
+                          objectPosition: "center",
+                          borderRadius: 0,
+                        }}
                       />
                     ) : (
                       <div
                         style={{
-                          ...expandMediaStyle,
+                          position: "absolute",
+                          inset: 0,
+                          background: "#111111",
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
                           gap: "8px",
-                          background: "#111111",
                           fontFamily: "Inter",
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: "32px",
-                            fontWeight: 500,
-                            color: "#1e1e1e",
-                            letterSpacing: "-1px",
-                          }}
-                        >
-                          {initialsFor(item.text)}
-                        </div>
+                        <svg width="48" height="48" viewBox="0 0 48 48">
+                          <circle
+                            cx="24"
+                            cy="24"
+                            r="20"
+                            fill="rgba(0,153,255,0.15)"
+                            stroke="rgba(0,153,255,0.4)"
+                            strokeWidth="1"
+                          />
+                          <polygon
+                            points="20,16 32,24 20,32"
+                            fill="rgba(0,153,255,0.8)"
+                          />
+                        </svg>
                         <div
                           style={{
                             fontSize: "9px",
-                            color: "#1a1a1a",
+                            color: "#555555",
                             letterSpacing: "0.15em",
                             textTransform: "uppercase",
                           }}
@@ -537,52 +582,59 @@ export default function HoverImageReveal({
                     )}
                   </div>
 
-                  {/* Details panel: status, description, then tech chips. */}
+                  {/* Details half */}
                   <div
                     style={{
-                      flex: 1,
-                      height: "100%",
-                      padding: "24px 28px",
+                      // Matches the media half exactly so the two stay flush.
+                      height: "300px",
+                      minWidth: 0,
+                      background: "#0f0f0f",
+                      padding: "20px 24px",
                       boxSizing: "border-box",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "center",
-                      gap: "12px",
-                      overflow: "hidden",
+                      justifyContent: "flex-end",
                       fontFamily: "Inter",
+                      // Anything that does not fit is clipped. This was auto,
+                      // so the long descriptions grew a scrollbar inside the
+                      // panel and broke the row layout.
+                      overflow: "hidden",
                     }}
                   >
                     {item.status && (
                       <div
                         style={{
-                          fontSize: "11px",
-                          fontWeight: 500,
+                          fontSize: "9px",
                           color: "#0099ff",
-                          letterSpacing: "0.14em",
+                          letterSpacing: "0.16em",
                           textTransform: "uppercase",
+                          marginBottom: "12px",
                         }}
                       >
                         {item.status}
                       </div>
                     )}
 
-                    {item.description && (
+                    {/* The tagline, not the description. Descriptions run to
+                        a paragraph and their length varied the row height;
+                        the full text belongs to the overlay. */}
+                    {(item.image?.alt || item.description) && (
                       <p
                         style={{
-                          fontSize: "15px",
-                          fontWeight: 400,
-                          color: "#cccccc",
-                          lineHeight: 1.55,
-                          margin: 0,
-                          maxWidth: "420px",
-                          overflow: "hidden",
+                          fontSize: "13px",
+                          lineHeight: 1.5,
+                          color: "#666666",
+                          fontFamily: "Inter",
+                          margin: "0 0 18px 0",
+                          maxWidth: "520px",
                           display: "-webkit-box",
-                          WebkitLineClamp: 3,
+                          WebkitLineClamp: 4,
                           WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {item.description}
+                        {item.image?.alt || item.description}
                       </p>
                     )}
 
@@ -591,20 +643,19 @@ export default function HoverImageReveal({
                         style={{
                           display: "flex",
                           flexWrap: "wrap",
-                          gap: "6px",
-                          marginTop: "4px",
+                          gap: "5px",
                         }}
                       >
-                        {item.tech.slice(0, 4).map((tech) => (
+                        {item.tech.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
                             style={{
-                              background: "#1c1c1c",
-                              border: "0.5px solid #262626",
-                              borderRadius: "100px",
-                              padding: "4px 12px",
-                              fontSize: "11px",
-                              color: "#888888",
+                              padding: "6px 11px",
+                              border: "0.5px solid #292929",
+                              borderRadius: "999px",
+                              color: "#777777",
+                              fontSize: "9px",
+                              letterSpacing: "0.02em",
                               whiteSpace: "nowrap",
                             }}
                           >
@@ -613,6 +664,18 @@ export default function HoverImageReveal({
                         ))}
                       </div>
                     )}
+
+                    <div
+                      style={{
+                        marginTop: "14px",
+                        fontSize: "9px",
+                        color: "#3a3a3a",
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Click to view details
+                    </div>
                   </div>
                 </div>
               </motion.div>
