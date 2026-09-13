@@ -68,7 +68,7 @@ export function CustomCursor() {
     >
       <div
         style={{
-          transform: "translate(-2px, -2px)",
+          transform: "translate(-3px, -3px)",
         }}
       >
         <svg
@@ -86,34 +86,27 @@ export function CustomCursor() {
           <defs>
             <linearGradient
               id="cursorGrad"
-              x1="6"
-              y1="4"
-              x2="22"
-              y2="34"
+              x1="4"
+              y1="3"
+              x2="15"
+              y2="31"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0%" stopColor="#0099ff" />
-              <stop offset="100%" stopColor="#6644ff" />
+              <stop offset="0%" stopColor="#1e88ff" />
+              <stop offset="100%" stopColor="#8b5cf6" />
             </linearGradient>
           </defs>
           <path
             d="
-              M6 4
-              C5 3 3.5 3.5 3.5 5
-              L3.5 28
-              C3.5 29.8 5.8 30.5 6.9 29.1
-              L12 22.5
-              C12.5 21.9 13.1 21.6 13.8 21.6
-              L14.4 21.6
-              C15.1 21.6 15.8 21.9 16.2 22.4
-              L20.8 28.8
-              C21.6 29.9 23.2 29.6 23.7 28.3
-              L25.4 24.1
-              C25.7 23.3 25.4 22.4 24.7 21.9
-              L19.2 18.4
-              C18.4 17.9 18.4 16.8 19.2 16.3
-              L30.5 10.8
-              C31.8 10.2 31.8 8.3 30.5 7.7
+              M4.02 3.42
+              L28.72 13.59
+              Q30.2 14.2 28.82 15.01
+              L21.68 19.19
+              Q20.3 20 19.46 21.36
+              L15.04 28.54
+              Q14.2 29.9 13.59 28.42
+              L3.42 4.02
+              Q3 3 4.02 3.42
               Z
             "
             fill="url(#cursorGrad)"
