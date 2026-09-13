@@ -77,7 +77,9 @@ export function CustomCursor() {
         pointerEvents: "none",
         willChange: "transform",
         opacity: isHidden ? 0 : 1,
-        transition: "opacity 0.25s ease",
+        transition: scrolling
+          ? "opacity 0.15s ease-out"
+          : "opacity 0.1s ease-in",
       }}
     >
       <div
