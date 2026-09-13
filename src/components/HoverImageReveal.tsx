@@ -161,7 +161,16 @@ export default function HoverImageReveal({
                 scrollSnapAlign: "start",
                 borderRadius: "14px",
                 background: "#141414",
-                border: "0.5px solid #1e1e1e",
+                // Written out per side rather than as the border shorthand.
+                // This node is reused when the layout swaps between the
+                // desktop list and this carousel, and the row it swaps with
+                // sets borderTop. React warns when it has to drop a shorthand
+                // while a conflicting longhand is set, so both sides of the
+                // swap stay on longhands.
+                borderTop: "0.5px solid #1e1e1e",
+                borderBottom: "0.5px solid #1e1e1e",
+                borderLeft: "0.5px solid #1e1e1e",
+                borderRight: "0.5px solid #1e1e1e",
                 position: "relative",
                 overflow: "hidden",
                 cursor: "none",
