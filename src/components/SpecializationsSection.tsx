@@ -867,6 +867,77 @@ export default function SpecializationsSection() {
                   }}
                   config={MEDIA_CONFIG[segment.id as keyof typeof MEDIA_CONFIG]}
                 />
+
+                {isMobile && activeSegment === segment.id && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "0",
+                      left: "0",
+                      width: `${PIE_SIZE}px`,
+                      height: `${PIE_SIZE}px`,
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      pointerEvents: "none",
+                      zIndex: 4,
+                      // Only this slice's own arc survives the clip, and the
+                      // box's bottom centre sits inside the bottom slice alone.
+                      // Turning the box puts the anchor on this slice's mid-angle.
+                      transform: `rotate(${midAngle(segment) - 90}deg)`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        marginBottom: "90px",
+                        pointerEvents: "all",
+                        cursor: "none",
+                        // Turns the label back upright, and undoes the pie's
+                        // own scale so the pill keeps the size given below.
+                        transform: `rotate(${90 - midAngle(segment)}deg) scale(${1 / pieScale})`,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProject(segment.primaryProject);
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          background: "rgba(0,0,0,0.75)",
+                          backdropFilter: "blur(8px)",
+                          border: "0.5px solid rgba(0,153,255,0.4)",
+                          borderRadius: "100px",
+                          padding: "8px 18px",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          color: "#ffffff",
+                          fontFamily: "Inter",
+                          letterSpacing: "-0.2px",
+                          WebkitTapHighlightColor: "transparent",
+                        }}
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#0099ff"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="16" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                        View details
+                      </div>
+                    </div>
+                  </div>
+                )}
               </foreignObject>
             </motion.g>
           ))}
@@ -941,6 +1012,73 @@ export default function SpecializationsSection() {
                 }}
                 config={MEDIA_CONFIG.hardware}
               />
+
+              {isMobile && activeSegment === centerData.id && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "0",
+                    left: "0",
+                    width: `${PIE_SIZE}px`,
+                    height: `${PIE_SIZE}px`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    pointerEvents: "none",
+                    zIndex: 4,
+                    paddingTop: "80px",
+                  }}
+                >
+                  <div
+                    style={{
+                      pointerEvents: "all",
+                      cursor: "none",
+                      // Undoes the pie's own scale so the pill keeps the size
+                      // given below.
+                      transform: `scale(${1 / pieScale})`,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProject(centerData.primaryProject);
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "rgba(0,0,0,0.75)",
+                        backdropFilter: "blur(8px)",
+                        border: "0.5px solid rgba(0,153,255,0.4)",
+                        borderRadius: "100px",
+                        padding: "8px 18px",
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: "#ffffff",
+                        fontFamily: "Inter",
+                        letterSpacing: "-0.2px",
+                        WebkitTapHighlightColor: "transparent",
+                      }}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#0099ff"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                      </svg>
+                      View details
+                    </div>
+                  </div>
+                </div>
+              )}
             </foreignObject>
 
             <circle
