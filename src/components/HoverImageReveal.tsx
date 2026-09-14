@@ -212,118 +212,80 @@ export default function HoverImageReveal({
   if (isMobile) {
     return (
       <div
-        className="no-scrollbar"
+        className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-5"
         style={{
-          display: "flex",
-          flexDirection: "row",
-          overflowX: "auto",
-          overflowY: "hidden",
-          scrollSnapType: "x mandatory",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
-          gap: "12px",
-          padding: "0 20px 20px 20px",
-          width: "100%",
           backgroundColor,
         }}
       >
         {list.map((item, i) => {
+          const bridge = item.image?.alt ?? item.description;
+
           return (
-            <div
+            <motion.div
               key={i}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => onItemClick?.(i)}
+              className="relative flex h-[420px] w-[75vw] max-w-[320px] min-w-[260px] flex-shrink-0 snap-start flex-col overflow-hidden rounded-[10px] border-[0.5px] border-hairline bg-surface-1"
               style={{
-                flexShrink: 0,
-                width: "75vw",
-                minWidth: "260px",
-                maxWidth: "320px",
-                height: "360px",
-                scrollSnapAlign: "start",
-                borderRadius: "14px",
-                background: "#141414",
-                // Written out per side rather than as the border shorthand.
-                // This node is reused when the layout swaps between the
-                // desktop list and this carousel, and the row it swaps with
-                // sets borderTop. React warns when it has to drop a shorthand
-                // while a conflicting longhand is set, so both sides of the
-                // swap stay on longhands.
-                borderTop: "0.5px solid #1e1e1e",
-                borderBottom: "0.5px solid #1e1e1e",
-                borderLeft: "0.5px solid #1e1e1e",
-                borderRight: "0.5px solid #1e1e1e",
-                position: "relative",
-                overflow: "hidden",
                 cursor: "none",
                 WebkitTapHighlightColor: "transparent",
                 touchAction: "manipulation",
               }}
             >
-              {/* Artwork */}
-              <div
-                style={{
-                  height: "65%",
-                  background: "#111111",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
+              {/* Media panel, melting into the card surface along its lower edge */}
+              <div className="relative h-[210px] w-full flex-shrink-0 overflow-hidden bg-[#111111]">
                 {renderCardMedia(item, i)}
+
+                <span className="absolute right-[14px] top-[14px] rounded-full border-[0.5px] border-hairline bg-[rgba(9,9,9,0.55)] px-[9px] py-[3px] text-[10px] tracking-[0.14em] text-ink-muted backdrop-blur-sm">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-[60px]"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, transparent, var(--color-surface-1))",
+                  }}
+                />
               </div>
 
-              {/* Caption */}
-              <div
-                style={{
-                  height: "35%",
-                  padding: "14px 16px",
-                  background: "#141414",
-                  borderTop: "0.5px solid #1a1a1a",
-                  boxSizing: "border-box",
-                  fontFamily: "Inter",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    color: "#ffffff",
-                    letterSpacing: "-0.4px",
-                    lineHeight: 1.1,
-                    marginBottom: "4px",
-                  }}
-                >
+              {/* Details: status, title, bridge line, then the tech pills */}
+              <div className="flex min-h-0 flex-1 flex-col gap-2 px-[18px] pb-[18px] pt-4">
+                {item.status && (
+                  <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-accent-blue">
+                    {item.status}
+                  </span>
+                )}
+
+                <span className="line-clamp-2 text-[clamp(22px,6vw,26px)] font-medium leading-[1.1] tracking-[-0.03em] text-ink">
                   {item.text}
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#555555",
-                    lineHeight: 1.4,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {item.image?.alt ?? item.description}
-                </div>
-              </div>
+                </span>
 
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: "12px",
-                  right: "14px",
-                  fontSize: "11px",
-                  color: "#1e1e1e",
-                  letterSpacing: "0.1em",
-                  fontFamily: "Inter",
-                }}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
-            </div>
+                {bridge && (
+                  <span className="line-clamp-2 text-[13px] leading-[1.55] text-ink-muted">
+                    {bridge}
+                  </span>
+                )}
+
+                {item.tech && item.tech.length > 0 && (
+                  <div className="mt-auto flex flex-wrap gap-[5px] pt-1">
+                    {item.tech.slice(0, 3).map((tech) => (
+                      <span
+                        key={tech}
+                        className="rounded-full border-[0.5px] border-hairline bg-surface-2 px-[9px] py-1 text-[10px] text-ink-faint"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           );
         })}
       </div>
@@ -470,7 +432,7 @@ export default function HoverImageReveal({
                     overflow: "hidden",
                   }}
                 >
-                  {/* Media half — contain keeps the entire image/video visible. */}
+                  {/* Media half: contain keeps the entire image/video visible. */}
                   <div
                     style={{
                       position: "relative",
