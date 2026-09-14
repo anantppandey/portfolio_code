@@ -182,7 +182,7 @@ type SegmentProject = {
 
 /** Shared by the Training slice and the Hardware centre, which open the same project. */
 const OPENBOT_GIRAFFE: SegmentProject = {
-  title: "Giraffe",
+  title: "OpenBot Giraffe",
   status: "Open Source",
   tagline: "Low-cost, open-source 5-DoF robotic manipulator for Embodied AI",
   description:
@@ -212,7 +212,7 @@ const segments = [
   videoSrc: "/media/gif/manip_demo.webm",
 
   primaryProject: {
-    title: "Autonomous Pick-and-Place Manipulation Pipeline",
+    title: "MuJoCo-Gazebo RL Transfer",
     status: "Research",
 
     tagline:
@@ -263,7 +263,7 @@ const segments = [
     thumbnail: "/media/img/isaac.jpeg",
     videoSrc: "/media/gif/isaac.webm",
     primaryProject: {
-      title: "UR5e Isaac Sim Training Workflow",
+      title: "OpenBot Giraffe",
       status: "Simulation",
       tagline:
         "Trajectory playback, wrist-camera capture, and Cartesian end-effector teleoperation in Isaac Sim",
@@ -293,7 +293,7 @@ const segments = [
     thumbnail: "/media/img/train.jpeg",
     videoSrc: "/media/gif/train.webm",
     primaryProject: {
-      title: "MuJoCo PPO Sim-to-Sim Transfer",
+      title: "5-DOF Manipulation Stack",
       status: "Research",
       tagline:
         "PPO-based 5-DOF target reaching transferred from MuJoCo into ROS2 + Gazebo",
