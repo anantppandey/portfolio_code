@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { CursorProvider } from "@/components/ui/cursor";
-import { CursorLayer } from "@/components/CursorLayer";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { ClientParticleField } from "@/components/ClientParticleField";
 import "./globals.css";
@@ -26,12 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-canvas text-ink min-h-screen antialiased">
+        <CustomCursor />
         <SmoothScroll>
           <ClientParticleField />
-          <CursorProvider className="min-h-screen w-full">
-            <CursorLayer />
-            {children}
-          </CursorProvider>
+          {children}
         </SmoothScroll>
       </body>
     </html>

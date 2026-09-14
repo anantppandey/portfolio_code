@@ -542,17 +542,27 @@ const PIE_KEYFRAMES = `
 
 export default function SpecializationsSection() {
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
+  /** Tap state for touch devices, where hover never fires. */
+  const [tappedSegment, setTappedSegment] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<SegmentProject | null>(
     null,
   );
   // The pie is laid out in fixed pixels, so it scales to fit rather than
   // reflowing. Starts at 1 so server and first client render agree.
   const [pieScale, setPieScale] = useState(1);
+  /** Starts false so the server render matches; the real value lands after mount. */
+  const [isMobile, setIsMobile] = useState(false);
   /** One entry per slice plus the Hardware disc, keyed by segment id. */
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-  const isHovered = (id: string) => hoveredSegment === id;
-  const isDimmed = (id: string) =>
-    hoveredSegment !== null && hoveredSegment !== id;
+  /** Hover drives the expand on desktop, tap drives it on mobile. */
+  const activeSegment = isMobile ? tappedSegment : hoveredSegment;
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const pick = () => {
@@ -566,19 +576,20 @@ export default function SpecializationsSection() {
     return () => window.removeEventListener("resize", pick);
   }, []);
 
-  // Only the hovered shape's clip plays; the rest rewind so each hover starts
+  // Only the active shape's clip plays; the rest rewind so each expand starts
   // from the top. play() rejects if the source cannot load, hence the catch.
   useEffect(() => {
+    const active = isMobile ? tappedSegment : hoveredSegment;
     for (const [id, el] of Object.entries(videoRefs.current)) {
       if (!el) continue;
-      if (id === hoveredSegment) {
+      if (id === active) {
         void el.play().catch(() => {});
       } else {
         el.pause();
         el.currentTime = 0;
       }
     }
-  }, [hoveredSegment]);
+  }, [hoveredSegment, tappedSegment, isMobile]);
 
   /**
    * Closing pops the history entry the overlay pushed, so the URL does not
@@ -587,10 +598,11 @@ export default function SpecializationsSection() {
    */
   const closeSpecOverlay = useCallback(() => {
     setSelectedProject(null);
+    if (isMobile) setTappedSegment(null);
     if (window.history.state?.specOverlayOpen) {
       window.history.back();
     }
-  }, []);
+  }, [isMobile]);
 
   // A history entry per open overlay, so the hardware back button on mobile
   // dismisses the overlay instead of leaving the page.
@@ -707,7 +719,7 @@ export default function SpecializationsSection() {
                 r={HARDWARE_R}
                 animate={{
                   r:
-                    hoveredSegment === centerData.id
+                    activeSegment === centerData.id
                       ? HARDWARE_HOVER_R
                       : HARDWARE_R,
                 }}
@@ -726,7 +738,7 @@ export default function SpecializationsSection() {
             strokeWidth={0.5}
             strokeDasharray="3 6"
             initial={{ strokeOpacity: 0.06 }}
-            animate={{ strokeOpacity: hoveredSegment ? 0.2 : 0.06 }}
+            animate={{ strokeOpacity: activeSegment ? 0.2 : 0.06 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           />
           <motion.circle
@@ -738,7 +750,7 @@ export default function SpecializationsSection() {
             strokeWidth={12}
             filter="url(#segment-glow)"
             initial={{ opacity: 0 }}
-            animate={{ opacity: hoveredSegment ? 0.6 : 0 }}
+            animate={{ opacity: activeSegment ? 0.6 : 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           />
 
@@ -752,10 +764,10 @@ export default function SpecializationsSection() {
                 scale: 1,
                 // Slide the whole slice along its own mid-angle on hover. The
                 // media and its clip ride along, staying registered together.
-                x: isHovered(segment.id)
+                x: activeSegment === segment.id
                   ? Math.cos(toRad(midAngle(segment))) * HOVER_SHIFT
                   : 0,
-                y: isHovered(segment.id)
+                y: activeSegment === segment.id
                   ? Math.sin(toRad(midAngle(segment))) * HOVER_SHIFT
                   : 0,
               }}
@@ -793,34 +805,45 @@ export default function SpecializationsSection() {
                 }}
                 animate={{
                   d: describeArc(
-                    isHovered(segment.id) ? HOVER_OUTER_R : OUTER_R,
+                    activeSegment === segment.id ? HOVER_OUTER_R : OUTER_R,
                     INNER_R,
                     segment.startAngle,
                     segment.endAngle,
                   ),
-                  fill: isHovered(segment.id)
+                  fill: activeSegment === segment.id
                     ? "#0a2040"
-                    : isDimmed(segment.id)
+                    : activeSegment !== null && activeSegment !== segment.id
                       ? "#080e18"
                       : "#0d1a2a",
-                  stroke: isHovered(segment.id)
+                  stroke: activeSegment === segment.id
                     ? "rgba(0,153,255,0.8)"
-                    : isDimmed(segment.id)
+                    : activeSegment !== null && activeSegment !== segment.id
                       ? "rgba(0,153,255,0.08)"
                       : "rgba(0,153,255,0.15)",
-                  strokeWidth: isHovered(segment.id) ? 1.5 : 1,
-                  opacity: isDimmed(segment.id) ? 0.7 : 1,
+                  strokeWidth: activeSegment === segment.id ? 1.5 : 1,
+                  opacity: activeSegment !== null && activeSegment !== segment.id ? 0.7 : 1,
                 }}
                 transition={{
                   d: { type: "spring", stiffness: 300, damping: 28 },
                   default: { duration: 0.35, ease: "easeInOut" },
                 }}
                 filter={
-                  isHovered(segment.id) ? "url(#segment-glow)" : undefined
+                  activeSegment === segment.id ? "url(#segment-glow)" : undefined
                 }
-                onMouseEnter={() => setHoveredSegment(segment.id)}
-                onMouseLeave={() => setHoveredSegment(null)}
-                onClick={() => setSelectedProject(segment.primaryProject)}
+                onMouseEnter={
+                  isMobile ? undefined : () => setHoveredSegment(segment.id)
+                }
+                onMouseLeave={
+                  isMobile ? undefined : () => setHoveredSegment(null)
+                }
+                onClick={
+                  isMobile
+                    ? () =>
+                        setTappedSegment(
+                          tappedSegment === segment.id ? null : segment.id,
+                        )
+                    : () => setSelectedProject(segment.primaryProject)
+                }
                 style={{ cursor: "none", pointerEvents: "all" }}
               />
 
@@ -834,7 +857,7 @@ export default function SpecializationsSection() {
                 style={{ pointerEvents: "none" }}
               >
                 <SegmentMedia
-                  active={isHovered(segment.id)}
+                  active={activeSegment === segment.id}
                   thumbnail={segment.thumbnail}
                   videoSrc={segment.videoSrc}
                   origin={mediaOriginFor(midAngle(segment))}
@@ -878,20 +901,20 @@ export default function SpecializationsSection() {
               r={HARDWARE_R}
               animate={{
                 r:
-                  hoveredSegment === centerData.id
+                  activeSegment === centerData.id
                     ? HARDWARE_HOVER_R
                     : HARDWARE_R,
               }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               fill="#090909"
               stroke={
-                hoveredSegment === centerData.id
+                activeSegment === centerData.id
                   ? "rgba(0,153,255,0.6)"
                   : "rgba(0,153,255,0.3)"
               }
               strokeWidth={1}
               filter={
-                hoveredSegment === centerData.id
+                activeSegment === centerData.id
                   ? "url(#center-glow)"
                   : undefined
               }
@@ -908,7 +931,7 @@ export default function SpecializationsSection() {
               style={{ pointerEvents: "none" }}
             >
               <SegmentMedia
-                active={hoveredSegment === centerData.id}
+                active={activeSegment === centerData.id}
                 thumbnail={centerData.thumbnail}
                 videoSrc={centerData.videoSrc}
                 origin="50% 50%"
@@ -943,7 +966,7 @@ export default function SpecializationsSection() {
             />
             <motion.g
               animate={{
-                scale: hoveredSegment === centerData.id
+                scale: activeSegment === centerData.id
                   ? HARDWARE_HOVER_R / HARDWARE_R
                   : 1,
               }}
@@ -972,15 +995,26 @@ export default function SpecializationsSection() {
               r={HARDWARE_R}
               animate={{
                 r:
-                  hoveredSegment === centerData.id
+                  activeSegment === centerData.id
                     ? HARDWARE_HOVER_R
                     : HARDWARE_R,
               }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               fill="transparent"
-              onMouseEnter={() => setHoveredSegment(centerData.id)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              onClick={() => setSelectedProject(centerData.primaryProject)}
+              onMouseEnter={
+                isMobile ? undefined : () => setHoveredSegment(centerData.id)
+              }
+              onMouseLeave={
+                isMobile ? undefined : () => setHoveredSegment(null)
+              }
+              onClick={
+                isMobile
+                  ? () =>
+                      setTappedSegment(
+                        tappedSegment === centerData.id ? null : centerData.id,
+                      )
+                  : () => setSelectedProject(centerData.primaryProject)
+              }
               style={{ cursor: "none", pointerEvents: "all" }}
             />
           </motion.g>
@@ -989,7 +1023,7 @@ export default function SpecializationsSection() {
           <defs>
             {segments.map((segment) => {
               const angle = midAngle(segment);
-              const radius = isHovered(segment.id) ? 390 : 365;
+              const radius = activeSegment === segment.id ? 390 : 365;
               const start = angle - 42;
               const end = angle + 42;
               const startPoint = polar(radius, start);
@@ -1012,9 +1046,9 @@ export default function SpecializationsSection() {
             // The title is already at the expanded position at rest.
             // On hover, move the title farther outward and put each metadata
             // line on its own larger-radius arc so the three lines never collide.
-            const titleRadius = isHovered(segment.id) ? 420 : 365;
-            const toolsRadius = isHovered(segment.id) ? 452 : 365;
-            const descriptionRadius = isHovered(segment.id) ? 470 : 365;
+            const titleRadius = activeSegment === segment.id ? 420 : 365;
+            const toolsRadius = activeSegment === segment.id ? 452 : 365;
+            const descriptionRadius = activeSegment === segment.id ? 470 : 365;
 
             const makeArc = (radius: number) => {
               const start = angle - 52;
@@ -1053,10 +1087,10 @@ export default function SpecializationsSection() {
                 <motion.text
                   initial={{ opacity: 0 }}
                   animate={{
-                    opacity: isDimmed(segment.id) ? 0.25 : 1,
+                    opacity: activeSegment !== null && activeSegment !== segment.id ? 0.25 : 1,
                   }}
                   transition={{ opacity: { duration: 0.3 } }}
-                  fill={isHovered(segment.id) ? "#ffffff" : "#cccccc"}
+                  fill={activeSegment === segment.id ? "#ffffff" : "#cccccc"}
                   fontSize={29}
                   fontWeight={700}
                   fontFamily="Inter"
@@ -1064,7 +1098,7 @@ export default function SpecializationsSection() {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   style={{
-                    textShadow: isHovered(segment.id)
+                    textShadow: activeSegment === segment.id
                       ? "0 0 18px rgba(0,153,255,0.45)"
                       : "none",
                   }}
@@ -1080,7 +1114,7 @@ export default function SpecializationsSection() {
                 <motion.text
                   initial={{ opacity: 0 }}
                   animate={{
-                    opacity: isHovered(segment.id) ? 1 : 0,
+                    opacity: activeSegment === segment.id ? 1 : 0,
                   }}
                   transition={{ duration: 0.25, ease: EASE }}
                   fill="#0099ff"
@@ -1102,7 +1136,7 @@ export default function SpecializationsSection() {
                 <motion.text
                   initial={{ opacity: 0 }}
                   animate={{
-                    opacity: isHovered(segment.id) ? 1 : 0,
+                    opacity: activeSegment === segment.id ? 1 : 0,
                   }}
                   transition={{ duration: 0.3, delay: 0.03, ease: EASE }}
                   fill="#777777"
@@ -1124,6 +1158,154 @@ export default function SpecializationsSection() {
             );
           })}
         </svg>
+
+        {/* Pills sit outside the SVG on purpose: every slice shape is a
+            clippath on the artwork, and a pill parented to a foreignObject
+            inherits that clip and gets cut off. */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          <AnimatePresence>
+            {isMobile &&
+              segments.map((segment) => {
+                if (activeSegment !== segment.id) return null;
+
+                const midDeg = midAngle(segment);
+                const pillR = HOVER_OUTER_R + HOVER_SHIFT + 28;
+                const pillX = CX + pillR * Math.cos(toRad(midDeg));
+                const pillY = CY + pillR * Math.sin(toRad(midDeg));
+
+                return (
+                  <motion.div
+                    key={segment.id}
+                    initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.85, y: 6 }}
+                    transition={{ duration: 0.22, ease: EASE }}
+                    style={{
+                      position: "absolute",
+                      left: pillX,
+                      top: pillY,
+                      // Centred with `translate` rather than `transform`,
+                      // which the animation above writes to.
+                      translate: "-50% -50%",
+                      pointerEvents: "all",
+                      cursor: "none",
+                      zIndex: 20,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProject(segment.primaryProject);
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "rgba(9,9,9,0.9)",
+                        backdropFilter: "blur(12px)",
+                        border: "0.5px solid rgba(0,153,255,0.5)",
+                        borderRadius: "100px",
+                        padding: "9px 18px",
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: "#ffffff",
+                        fontFamily: "Inter",
+                        letterSpacing: "-0.2px",
+                        whiteSpace: "nowrap",
+                        WebkitTapHighlightColor: "transparent",
+                        boxShadow: "0 0 16px rgba(0,153,255,0.2)",
+                      }}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#0099ff"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                      </svg>
+                      View details
+                    </div>
+                  </motion.div>
+                );
+              })}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {isMobile && activeSegment === centerData.id && (
+              <motion.div
+                key={centerData.id}
+                initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.85, y: 6 }}
+                transition={{ duration: 0.22, ease: EASE }}
+                style={{
+                  position: "absolute",
+                  left: CX,
+                  top: CY - 130,
+                  translate: "-50% -50%",
+                  pointerEvents: "all",
+                  cursor: "none",
+                  zIndex: 20,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedProject(centerData.primaryProject);
+                }}
+              >
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "rgba(9,9,9,0.9)",
+                    backdropFilter: "blur(12px)",
+                    border: "0.5px solid rgba(0,153,255,0.5)",
+                    borderRadius: "100px",
+                    padding: "9px 18px",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    color: "#ffffff",
+                    fontFamily: "Inter",
+                    letterSpacing: "-0.2px",
+                    whiteSpace: "nowrap",
+                    WebkitTapHighlightColor: "transparent",
+                    boxShadow: "0 0 16px rgba(0,153,255,0.2)",
+                  }}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0099ff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                  View details
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Full screen project overlay. Kept outside the scaled pie wrapper: a

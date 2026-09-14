@@ -37,14 +37,12 @@ body {
   overflow-x: clip;
 }
 
-/* Hide the OS cursor so only the custom one shows — no flash of the default
-   pointer before the component mounts. Scoped to the same breakpoint the
-   custom cursor renders at, so narrow windows keep a real pointer instead of
-   having none at all. */
-@media (min-width: 768px) {
-  * {
-    cursor: none !important;
-  }
+/* Hide the OS cursor so only the custom one shows, with no flash of the
+   default pointer before the component mounts. Applied at every viewport:
+   touch devices show no cursor anyway, so hiding it there has no visual
+   effect. */
+* {
+  cursor: none !important;
 }
 
 body {
