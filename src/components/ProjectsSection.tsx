@@ -258,6 +258,7 @@ export default function ProjectsSection() {
       </div>
 
       <div
+        className="hover-reveal-wrapper"
         style={{
           flex: 1,
           minHeight: "400px",

@@ -33,6 +33,7 @@
 - Uses Framer Motion `layoutId` + `AnimatePresence` for smooth card-to-fullscreen-overlay expand/collapse transitions. Confidence: 0.85
 - Consistent pill-style UI elements (status pills, tech chips, action buttons) with backdrop-blur, semi-transparent backgrounds (e.g. `bg-white/10`), and 0.5px hairline borders. Confidence: 0.85
 - Section padding convention: 96px top/bottom and 60px left/right on desktop, reduced to 16px/24px on mobile via responsive classes. Confidence: 0.8
+- Canonical mobile breakpoint is `max-width: 767px` (strictly below 768px) for CSS media queries, and mobile-only overrides must be scoped inside that query so desktop styling stays untouched. Confidence: 0.75
 - Communicates debugging tasks as numbered, step-by-step checklists with specific hypotheses and explicit file-scope constraints (e.g. "Do not modify X or Y"). Confidence: 0.9
 - Provides full implementation specs with exact CSS values, component architecture, state management approach, and even the commit message — essentially a prescriptive design document rather than a high-level request. Confidence: 0.9
 - References specific websites (e.g. "Porsche website reference") for design matching — expects pixel-perfect behavioral fidelity to the named reference. Confidence: 0.85
