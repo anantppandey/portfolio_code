@@ -51,6 +51,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Diamond quilted texture: two 18px diagonal line sets crossing at 45 and
+   -45 degrees, each line 1px at 0.018 alpha, so it reads as depth on the
+   canvas rather than as a pattern. Painted on the body and on every section,
+   because the sections are opaque and would otherwise hide it. The
+   !important is what lets it win over the inline background on #projects;
+   everything else here only has to beat the `bg-canvas` utility. */
+body,
+section,
+footer {
+  background-color: var(--color-canvas) !important;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px) !important;
+  background-size: 18px 18px !important;
+  background-position: 0 0 !important;
+}
+
+/* The hero renders the WebGL shader behind its content, so it stays
+   transparent and opts out of the texture entirely. */
+#hero {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 /* Mobile section rhythm. Every section below is either sized in viewports or
    padded for desktop, both of which read as empty space once the content
    scales down. Declared in the base layer so utility padding (the hero's
