@@ -44,7 +44,7 @@ export default function Home() {
         {/* Exactly one viewport tall. At 200vh the section inside was pinned
             for the extra 100vh, so the page kept scrolling while nothing on
             screen moved, which read as the scroll being stuck. */}
-        <div className="relative z-[2] h-[100vh]">
+        <div className="specializations-wrapper relative z-[2] h-[100vh]">
           <SpecializationsSection />
         </div>
 
