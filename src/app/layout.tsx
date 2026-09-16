@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { CustomCursor } from "@/components/ui/CustomCursor";
-import { LiquidBackground } from "@/components/ui/LiquidBackground";
+import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { ClientParticleField } from "@/components/ClientParticleField";
 import "./globals.css";
@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-canvas text-ink min-h-screen antialiased">
-        <LiquidBackground />
+        <AuroraBackground />
         <CustomCursor />
         <SmoothScroll>
           <ClientParticleField />
