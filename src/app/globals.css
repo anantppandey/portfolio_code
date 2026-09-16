@@ -65,7 +65,62 @@ footer {
     linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px) !important;
   background-size: 24px 24px !important;
-  background-position: 0 0 !important;
+  background-position: 0 0;
+  animation: diamond-drift 12s ease-in-out infinite;
+}
+
+/* Slow diagonal drift for the texture. The position travels exactly one tile
+   (24px) and returns over 12s, so the loop reads as a continuous glide with
+   no jump. The negative delays put the sections at different phases, which
+   is what turns the drift into depth rather than everything moving as one.
+   `background-position` is deliberately the one property in the rule above
+   without !important: an important declaration outranks an animation
+   declaration, and would hold the position at 0 0 and freeze the drift. */
+@keyframes diamond-drift {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: 24px 24px;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+#specializations {
+  animation-delay: -2s;
+}
+
+#projects {
+  animation-delay: -4s;
+}
+
+#about {
+  animation-delay: -6s;
+}
+
+#contact {
+  animation-delay: -8s;
+}
+
+footer {
+  animation-delay: -10s;
+}
+
+/* The drift is only decoration, so it stops for anyone asking for less
+   motion. */
+@media (prefers-reduced-motion: reduce) {
+  body,
+  section,
+  #hero,
+  #specializations,
+  #projects,
+  #about,
+  #contact,
+  footer {
+    animation: none !important;
+  }
 }
 
 /* The hero renders the WebGL shader behind its content, so it stays
