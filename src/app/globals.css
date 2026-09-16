@@ -93,6 +93,41 @@ footer {
   z-index: 1;
 }
 
+/* Readability wash. It sits at z-index -1 inside each section's own stacking
+   context, so it covers the glow enough to keep text crisp at 45% transmission
+   while still reading as texture. Negative keeps it above the canvas but
+   underneath every child, in flow or positioned, so content never needs to be
+   lifted over it and the z-index utilities inside the sections keep working.
+   Tune the alpha to taste: 0.4 shows more texture, 0.65 more readability. */
+section::before,
+footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 9, 9, 0.55);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* The sections are transparent now, so the browser default light scrollbar
+   reads as a misplaced stripe against the canvas. */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e1e1e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
 /* The dotted glow animates from a requestAnimationFrame loop rather than from
    a CSS animation, so `animation: none` would not stop it. Hidden outright
    instead, the same way the previous decorative canvas was. */
