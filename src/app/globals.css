@@ -74,6 +74,7 @@ body {
    win over the inline background on #projects; everything else here only has
    to beat the `bg-canvas` utility. */
 section,
+#hero,
 #specializations,
 #projects,
 #about,
@@ -83,18 +84,16 @@ footer {
   background-image: none !important;
 }
 
-/* The hero is the one section that paints its own animated backdrop, and its
-   WebGL shader canvas is semi transparent, so the fixed dotted canvas showed
-   through the hero's dark areas. An opaque background keeps the dots out: it
-   sits behind every child, so the shader, the hairline grid and the content
-   all still paint over it. The wrapper is included because the hero lives in a
-   150vh sticky range: once it scales down into a rounded card, the frame
-   around it, and the card's own dropped opacity, would both reveal the dots
-   again. Drop the wrapper selector from this rule to let the dots show in that
-   frame only. */
-#hero,
+/* The hero reads the dotted canvas at half the strength of every other
+   section. Sections get there through the 0.55 wash below, which leaves 45% of
+   full brightness, and the hero needs one extra layer of #090909 at 0.5 to
+   halve what is left (0.5 x 0.45 = 22.5%). That layer sits on the 150vh
+   wrapper rather than on the section itself: the wrapper is the backdrop for
+   the whole hero scroll region, the section keeps the same wash as everything
+   else, and a second 0.5 on the section would compound the two down to 11%, a
+   quarter rather than a half. */
 main > div:has(#hero) {
-  background-color: #090909 !important;
+  background-color: rgba(9, 9, 9, 0.5) !important;
   background-image: none !important;
 }
 
