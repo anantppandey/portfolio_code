@@ -19,26 +19,30 @@ export function GlobalBackground() {
       className="dotted-glow-background"
       style={{
         position: "fixed",
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         zIndex: 0,
         pointerEvents: "none",
         width: "100vw",
         height: "100vh",
+        overflow: "hidden",
       }}
     >
       <DottedGlowBackground
-        className="pointer-events-none mask-radial-to-90% mask-radial-at-center"
+        className="pointer-events-none block h-full w-full mask-radial-to-90% mask-radial-at-center"
         opacity={1}
         gap={10}
-        radius={1.6}
+        radius={1.8}
         colorLightVar="--color-neutral-800"
         glowColorLightVar="--color-neutral-700"
-        colorDarkVar="--color-neutral-700"
-        glowColorDarkVar="--color-sky-700"
+        colorDarkVar="--color-neutral-600"
+        glowColorDarkVar="--color-sky-600"
         backgroundOpacity={0}
-        speedMin={isMobile ? 0.1 : 0.3}
-        speedMax={isMobile ? 0.5 : 1.2}
-        speedScale={isMobile ? 0.4 : 0.8}
+        speedMin={isMobile ? 0.1 : 0.4}
+        speedMax={isMobile ? 0.6 : 1.4}
+        speedScale={isMobile ? 0.4 : 0.9}
       />
     </div>
   );
