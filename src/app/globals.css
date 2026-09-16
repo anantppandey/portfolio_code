@@ -58,30 +58,39 @@ body {
 
 body {
   background-color: #090909;
+  min-height: 100%;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* The dotted glow layer is fixed at z-index 0, and every section paints its
-   own background, so each one keeps a near-opaque wash over it and the dots
-   read as depth behind the content instead of as a pattern in front of it.
-   The !important is what lets the rule win over the inline background on
-   #projects; everything else here only has to beat the `bg-canvas` utility. */
+/* Every section is fully transparent, so the dotted glow is not just a strip
+   behind the first viewport: the canvas is fixed at z-index 0, which covers
+   the viewport at every scroll position, and with the opaque section washes
+   gone it now shows through every section the user scrolls past. Body #090909
+   is the fallback base colour, and the wash that keeps content readable lives
+   on the section ::before rule instead. The !important is what lets the rule
+   win over the inline background on #projects; everything else here only has
+   to beat the `bg-canvas` utility. */
 section,
+#hero,
 #specializations,
 #projects,
 #about,
 #contact,
 footer {
-  background-color: rgba(9, 9, 9, 0.85) !important;
-}
-
-/* The hero renders the WebGL shader behind its content, so it stays
-   transparent and lets the dotted glow show through. */
-#hero {
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* The canvas sits at z-index 0, so every section has to outrank it, and each
+   one also has to be positioned to contain its own overlay pseudo element.
+   The hero and specializations wrappers already carry z-[1] and z-[2]
+   utilities; these rules hold the invariant in one place. */
+section,
+footer {
+  position: relative;
+  z-index: 1;
 }
 
 /* The dotted glow animates from a requestAnimationFrame loop rather than from
