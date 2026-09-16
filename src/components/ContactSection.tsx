@@ -87,7 +87,7 @@ export default function ContactSection() {
       id="contact"
       className="relative z-[1] w-full overflow-hidden bg-canvas"
     >
-      <div className="relative z-[1] mx-auto max-w-[640px] px-6 py-[60px] md:px-[60px] md:py-[96px_80px]">
+      <div className="contact-inner relative z-[1] mx-auto max-w-[640px] px-6 py-[60px] md:px-[60px] md:py-[96px_80px]">
         {/* Section label */}
         <motion.p
           initial={{ opacity: 0 }}

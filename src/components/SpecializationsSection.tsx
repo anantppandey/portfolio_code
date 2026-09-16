@@ -655,7 +655,7 @@ export default function SpecializationsSection() {
       </p>
 
       <div
-        className="relative z-[2] shrink-0"
+        className="pie-container relative z-[2] shrink-0"
         style={{
           width: 700,
           height: 700,

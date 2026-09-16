@@ -29,7 +29,7 @@ export default function AboutSection() {
       id="about"
       className="relative z-[1] w-full overflow-hidden bg-canvas"
     >
-      <div className="relative z-[1] mx-auto max-w-[1400px] px-6 py-[60px] md:px-[60px] md:py-[96px]">
+      <div className="about-inner relative z-[1] mx-auto max-w-[1400px] px-6 py-[60px] md:px-[60px] md:py-[96px]">
         {/* Section number label */}
         <motion.p
           initial={{ opacity: 0 }}
@@ -150,7 +150,7 @@ export default function AboutSection() {
           </div>
 
           {/* Right column: skill cards */}
-          <div className="flex flex-col gap-3 lg:max-w-[40%]">
+          <div className="skill-cards-container flex flex-col gap-3 lg:max-w-[40%]">
             {skillCards.map((card, i) => (
               <motion.div
                 key={card.category}

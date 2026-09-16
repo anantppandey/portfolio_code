@@ -51,6 +51,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile section rhythm. Every section below is either sized in viewports or
+   padded for desktop, both of which read as empty space once the content
+   scales down. Declared in the base layer so utility padding (the hero's
+   py-0) still wins, and the !important overrides further down take over
+   where a section needs its own values. */
+@layer base {
+  @media (max-width: 767px) {
+    section {
+      padding-top: 48px;
+      padding-bottom: 48px;
+    }
+  }
+}
+
 /* Used by the mobile project carousel — scroll without a visible scrollbar. */
 .no-scrollbar {
   scrollbar-width: none;
@@ -149,5 +163,73 @@ body {
 
   .project-overlay-initials {
     font-size: 40px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* The pie now sits at the top of the section, and its outermost label text
+     reaches the top edge of its own 700px box, so the section keeps enough
+     headroom for the 48px section caption to stay clear of it. The bottom
+     value leaves room for the labels a tapped slice pushes outward. */
+  #specializations {
+    min-height: unset !important;
+    height: auto !important;
+    padding-top: 128px !important;
+    padding-bottom: 64px !important;
+  }
+
+  /* The section no longer reserves a viewport, so the wrapper must not
+     either, otherwise the gap simply moves one level up. */
+  .specializations-wrapper {
+    height: auto !important;
+    min-height: unset !important;
+  }
+
+  /* The pie is laid out at a fixed 700px and only scaled down (pieScale is
+     0.42 on mobile), so the box keeps reserving its full height in layout
+     while the drawing shrinks. Scale from the top and pull the unused
+     scaled-away height back out from underneath it. */
+  .pie-container {
+    transform-origin: top center !important;
+    margin-bottom: calc(700px * (1 - 0.42) * -1) !important;
+  }
+
+  #projects {
+    min-height: unset !important;
+    padding-top: 48px !important;
+    padding-bottom: 48px !important;
+  }
+
+  .hover-reveal-wrapper {
+    min-height: auto !important;
+  }
+
+  /* The vertical padding of these two sections lives on the inner wrapper
+     rather than on the section, so it is zeroed here and handed to the
+     section, which keeps the mobile spacing consistent site-wide and stops
+     the two from stacking. */
+  .about-inner,
+  .contact-inner {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  #about {
+    padding-top: 48px !important;
+    padding-bottom: 48px !important;
+  }
+
+  .skill-cards-container {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .skill-cards-container > div:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  #contact {
+    padding-top: 48px !important;
+    padding-bottom: 64px !important;
   }
 }
