@@ -17,6 +17,17 @@
   --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Tailwind v4 only emits theme variables for the utilities a page actually
+   uses, and the dotted glow canvas reads its dot and glow colors straight out
+   of these names, so they are declared here to guarantee they resolve. */
+:root {
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-sky-700: #0369a1;
+}
+
 /* No `scroll-behavior: smooth` here on purpose. Lenis animates the scroll
    position itself, and native smooth scrolling fights it for control, which
    showed up as stutter and jumps. Lenis owns anchor jumps too, so the
@@ -46,43 +57,41 @@ body {
 }
 
 body {
+  background-color: #090909;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Diamond quilted texture: two 24px diagonal line sets crossing at 45 and
-   -45 degrees, each line 1.5px at 0.12 alpha, so it reads as depth on the
-   canvas rather than as a pattern. Painted on the body and on every section,
-   because the sections paint their own backgrounds and would otherwise hide
-   it. That background color is deliberately 82% opaque rather than solid, so
-   the fixed aurora canvas sitting behind the sections bleeds through it. The
-   !important is what lets it win over the inline background on #projects;
-   everything else here only has to beat the `bg-canvas` utility. */
-body,
+/* The dotted glow layer is fixed at z-index 0, and every section paints its
+   own background, so each one keeps a near-opaque wash over it and the dots
+   read as depth behind the content instead of as a pattern in front of it.
+   The !important is what lets the rule win over the inline background on
+   #projects; everything else here only has to beat the `bg-canvas` utility. */
 section,
+#specializations,
+#projects,
+#about,
+#contact,
 footer {
-  background-color: rgba(9, 9, 9, 0.82) !important;
-  background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px) !important;
-  background-size: 24px 24px;
-  background-position: 0 0;
-}
-
-/* The aurora canvas behind the page is decoration as well, so reduced motion
-   hides it outright and leaves the diamond texture on its own. */
-@media (prefers-reduced-motion: reduce) {
-  canvas[aria-hidden="true"] {
-    display: none !important;
-  }
+  background-color: rgba(9, 9, 9, 0.85) !important;
 }
 
 /* The hero renders the WebGL shader behind its content, so it stays
-   transparent and opts out of the texture entirely. */
+   transparent and lets the dotted glow show through. */
 #hero {
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* The dotted glow animates from a requestAnimationFrame loop rather than from
+   a CSS animation, so `animation: none` would not stop it. Hidden outright
+   instead, the same way the previous decorative canvas was. */
+@media (prefers-reduced-motion: reduce) {
+  .dotted-glow-background,
+  [class*="dotted-glow"] {
+    display: none !important;
+  }
 }
 
 /* Mobile section rhythm. Every section below is either sized in viewports or
