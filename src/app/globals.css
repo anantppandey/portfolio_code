@@ -51,8 +51,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Diamond quilted texture: two 22px diagonal line sets crossing at 45 and
-   -45 degrees, each line 1px at 0.06 alpha, so it reads as depth on the
+/* Diamond quilted texture: two 24px diagonal line sets crossing at 45 and
+   -45 degrees, each line 1.5px at 0.12 alpha, so it reads as depth on the
    canvas rather than as a pattern. Painted on the body and on every section,
    because the sections are opaque and would otherwise hide it. The
    !important is what lets it win over the inline background on #projects;
@@ -62,9 +62,9 @@ section,
 footer {
   background-color: var(--color-canvas) !important;
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px) !important;
-  background-size: 22px 22px !important;
+    linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px !important;
   background-position: 0 0 !important;
 }
 
