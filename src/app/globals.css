@@ -51,42 +51,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Embossed quilted texture: four hard-stop corner gradients build the quilted
-   shapes, and two washes on top give the emboss, a light 135deg gradient
-   falling from each tile's top left and a dark 315deg one rising from its
-   bottom right, so the surface reads as raised and lit from the top left.
-   Painted on the body and on every section, because the sections paint their
-   own backgrounds and would otherwise hide it. The section color is
-   deliberately 88% opaque rather than solid, so the fixed aurora canvas
-   behind them bleeds through; the body keeps the same charcoal solid, since
-   it sits under both the aurora and the sections. The !important is what
-   lets it win over the inline background on #projects; everything else here
-   only has to beat the `bg-canvas` utility. */
+/* Diamond quilted texture: two 24px diagonal line sets crossing at 45 and
+   -45 degrees, each line 1.5px at 0.12 alpha, so it reads as depth on the
+   canvas rather than as a pattern. Painted on the body and on every section,
+   because the sections paint their own backgrounds and would otherwise hide
+   it. That background color is deliberately 82% opaque rather than solid, so
+   the fixed aurora canvas sitting behind the sections bleeds through it. The
+   !important is what lets it win over the inline background on #projects;
+   everything else here only has to beat the `bg-canvas` utility. */
 body,
 section,
 footer {
-  background-color: rgba(14, 14, 14, 0.88) !important;
+  background-color: rgba(9, 9, 9, 0.82) !important;
   background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
-    linear-gradient(315deg, rgba(0, 0, 0, 0.15) 0%, transparent 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%),
-    linear-gradient(225deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%),
-    linear-gradient(315deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%),
-    linear-gradient(45deg, rgba(255, 255, 255, 0.07) 25%, transparent 25%) !important;
-  background-size: 20px 20px;
-  background-position:
-    0 0,
-    0 0,
-    0 0,
-    10px 0,
-    10px -10px,
-    0px 10px;
-}
-
-/* Solid version of the same charcoal for the body, which sits under both the
-   aurora and the sections. */
-body {
-  background-color: #0e0e0e !important;
+    linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px;
+  background-position: 0 0;
 }
 
 /* The aurora canvas behind the page is decoration as well, so reduced motion
