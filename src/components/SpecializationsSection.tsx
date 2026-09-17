@@ -631,6 +631,21 @@ export default function SpecializationsSection() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  /*
+   * Open one slice on arrival, mobile only. Nothing about the pie says "tap
+   * me" on a touch device, where there is no hover to discover it with, so the
+   * first slice starts expanded and carries its Know more label as a worked
+   * example. It stays open until the visitor taps something, after which the
+   * normal toggle takes over. The ref keeps it to once per mount, so it does
+   * not reopen if the viewport crosses the breakpoint later.
+   */
+  const introOpened = useRef(false);
+  useEffect(() => {
+    if (!isMobile || introOpened.current) return;
+    introOpened.current = true;
+    setTappedSegment(segments[0].id);
+  }, [isMobile]);
+
   useEffect(() => {
     const pick = () => {
       const w = window.innerWidth;
