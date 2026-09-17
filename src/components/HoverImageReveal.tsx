@@ -143,8 +143,6 @@ export default function HoverImageReveal({
    * would pull it straight back into a freeze and the escape would not stick.
    */
   const released = useRef(false);
-  /** Puts the strip's scroll snapping back once a driven gesture has settled. */
-  const snapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Take the page once the section reaches the middle of the screen, and give
@@ -209,37 +207,17 @@ export default function HoverImageReveal({
       carousel.scrollLeft >=
       carousel.scrollWidth - carousel.clientWidth - 5;
 
-    const restoreSnap = () => {
-      carousel.style.scrollSnapType = "x mandatory";
-      carousel.style.scrollBehavior = "smooth";
-    };
-
-    /** The run is over for good: hand the section back to normal scrolling. */
+    /**
+     * The run is over for good: hand the section back to normal scrolling.
+     *
+     * Nothing is restored here because nothing was ever taken. The strip
+     * carries no snapping on mobile, so there is no engine left to hand back
+     * and nothing to jump when a gesture ends.
+     */
     const complete = () => {
       isHijacking.current = false;
       hasCompletedHijack.current = true;
-      restoreSnap();
       resumePageScroll();
-    };
-
-    /*
-     * Snapping and a gesture that is being driven frame by frame fight each
-     * other, so it steps aside while input is arriving and returns once the
-     * input settles.
-     *
-     * Smooth scrolling steps aside with it. `scroll-behavior: smooth` animates
-     * toward each new target, and reading scrollLeft back hands out the value
-     * from before the animation, so a drag arriving faster than the animation
-     * can follow only ever contributes its latest delta. Driven input is
-     * applied instantly instead; smooth comes back with the snapping, so the
-     * dots still glide when they are tapped.
-     */
-    const drive = (delta: number) => {
-      carousel.style.scrollSnapType = "none";
-      carousel.style.scrollBehavior = "auto";
-      if (snapTimeout.current) clearTimeout(snapTimeout.current);
-      snapTimeout.current = setTimeout(restoreSnap, 150);
-      carousel.scrollLeft += delta;
     };
 
     let touchY = 0;
@@ -282,12 +260,11 @@ export default function HoverImageReveal({
       }
 
       event.preventDefault();
-      drive(delta * 1.4);
+      carousel.scrollLeft += delta * 1.2;
     };
 
     const handleTouchEnd = () => {
       tracking = false;
-      if (!hasCompletedHijack.current) restoreSnap();
     };
 
     /*
@@ -317,7 +294,7 @@ export default function HoverImageReveal({
       }
 
       event.preventDefault();
-      drive(event.deltaY);
+      carousel.scrollLeft += event.deltaY;
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -330,7 +307,6 @@ export default function HoverImageReveal({
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
-      if (snapTimeout.current) clearTimeout(snapTimeout.current);
     };
   }, [isMobile]);
 
@@ -513,9 +489,25 @@ export default function HoverImageReveal({
              * either, for the reason given on the card below.
              */
             overflowY: "hidden",
-            scrollSnapType: "x mandatory",
+            /*
+             * Off for the whole of mobile, not just while a gesture is being
+             * driven. Native snap physics pull the strip toward the nearest
+             * card between one assigned position and the next, which is what
+             * made a driven drag stutter, and handing the snap back at the end
+             * of the gesture is what made it jump. The carousel still swipes,
+             * it just stops short of aligning itself to a card.
+             */
+            scrollSnapType: "none",
             WebkitOverflowScrolling: "touch",
-            scrollBehavior: "smooth",
+            /*
+             * Also off, and for a related reason: `smooth` animates toward
+             * every newly assigned scrollLeft and reports the pre animation
+             * value when read back, so a drag arriving faster than the
+             * animation can follow only ever contributes its last delta. The
+             * dots ask for `behavior: "smooth"` on the call itself, so tapping
+             * one still glides.
+             */
+            scrollBehavior: "auto",
             gap: `${CARD_GAP}px`,
             /* No side padding: the wrapper in the section already insets this
                by 20px, and adding it again here would double that. */
