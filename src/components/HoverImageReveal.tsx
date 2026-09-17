@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
-import { getLenis } from "@/components/SmoothScroll";
 
 /** Stand-in footage for every project until the real clips exist. */
 const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
 
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+/** Gap between carousel cards, shared by the layout and the dot arithmetic. */
+const CARD_GAP = 12;
 
 /** Sources a <video> can decode. Anything else is handed to an <img>. */
 const isVideoSrc = (src: string) => /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(src);
@@ -21,18 +23,6 @@ const imgAlreadyFailed = (el: HTMLImageElement | null) =>
   !!el && el.complete && el.naturalWidth === 0;
 const videoAlreadyFailed = (el: HTMLVideoElement | null) =>
   !!el && el.error !== null;
-
-/**
- * Lenis moves the scroll position itself, so `preventDefault` alone does not
- * stop the page sliding under a hijacked carousel and the engine has to be
- * stopped as well. An open project overlay holds the same lock, and it marks
- * that state with `body { overflow: hidden }`, so the release is skipped while
- * that flag is set: otherwise the carousel reaching a card boundary would hand
- * scroll back to a page the overlay is still covering.
- */
-const releasePageScroll = () => {
-  if (document.body.style.overflow !== "hidden") getLenis()?.start();
-};
 
 export type HoverImageRevealItem = {
   text?: string;
@@ -110,10 +100,8 @@ export default function HoverImageReveal({
 
   /** Mobile only: the horizontally scrolling strip of cards. */
   const carouselRef = useRef<HTMLDivElement>(null);
-  /** True while the section is pinned and drives the scroll instead of the page. */
-  const isPinned = useRef(false);
-  /** Set by a boundary release so the lock cannot re-arm on the same spot. */
-  const pinSuppressed = useRef(false);
+  /** Which card the strip has settled on, for the dots below it. */
+  const [activeCard, setActiveCard] = useState(0);
 
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
@@ -122,191 +110,6 @@ export default function HoverImageReveal({
       ? (entry as HoverImageRevealItem)
       : {};
   });
-
-  /**
-   * The lock arms only once the section has reached the top of the screen, so
-   * the first part of the section scrolls like anything else and the carousel
-   * never picks the gesture up half a screen early. The section is 653px
-   * against an 844px viewport on mobile, so the test is "the top has arrived
-   * and the section is still on screen" rather than a full height one, which
-   * a short section could never satisfy.
-   *
-   * A boundary release suppresses re-arming until the section has cleared the
-   * zone: without that the next scroll event would pin it straight back and
-   * the page could never leave.
-   */
-  useEffect(() => {
-    if (!isMobile) return;
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-
-    // The section belongs to the page rather than to this component, so it is
-    // resolved from the DOM instead of being passed in.
-    const section = carousel.closest("section");
-    if (!section) return;
-
-    const checkPin = () => {
-      const rect = section.getBoundingClientRect();
-
-      if (pinSuppressed.current) {
-        if (rect.top > 40 || rect.bottom <= 0) pinSuppressed.current = false;
-        return;
-      }
-
-      const inZone = rect.top <= 10 && rect.bottom > 0;
-      if (isPinned.current === inZone) return;
-
-      isPinned.current = inZone;
-      if (inZone) {
-        getLenis()?.stop();
-      } else {
-        releasePageScroll();
-      }
-    };
-
-    window.addEventListener("scroll", checkPin, { passive: true });
-    checkPin();
-
-    return () => {
-      window.removeEventListener("scroll", checkPin);
-      releasePageScroll();
-    };
-  }, [isMobile]);
-
-  /**
-   * While the section is pinned, vertical scroll is translated straight into
-   * `scrollLeft`, so the strip tracks the gesture instead of stepping a card
-   * at a time. Snapping is switched off while a gesture is moving the strip
-   * and restored once it settles, which is what keeps continuous motion from
-   * fighting the snap points. Both gestures are listened for on the window so
-   * a swipe that starts on a card is caught too, and either end unpins on the
-   * same rule: past the last card downward, before the first one upward.
-   */
-  useEffect(() => {
-    if (!isMobile) return;
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isScrollActive = false;
-    let snapTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    const getScrollBounds = () => {
-      const maxScroll = carousel.scrollWidth - carousel.clientWidth;
-      const currentScroll = carousel.scrollLeft;
-      return {
-        atStart: currentScroll <= 5,
-        atEnd: currentScroll >= maxScroll - 5,
-        maxScroll,
-      };
-    };
-
-    const suspendSnap = () => {
-      carousel.style.scrollSnapType = "none";
-      clearTimeout(snapTimeout);
-      snapTimeout = setTimeout(() => {
-        carousel.style.scrollSnapType = "x mandatory";
-      }, 150);
-    };
-
-    /* Handing the gesture back at either end: unpinned, held from re-arming,
-       and Lenis resumed so the same event continues into the page rather than
-       being swallowed by a stopped engine. */
-    const releasePin = () => {
-      isPinned.current = false;
-      pinSuppressed.current = true;
-      releasePageScroll();
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      if (!isPinned.current) return;
-
-      const { atStart, atEnd } = getScrollBounds();
-
-      if (e.deltaY > 0 && atEnd) {
-        releasePin();
-        return;
-      }
-      if (e.deltaY < 0 && atStart) {
-        releasePin();
-        return;
-      }
-      // A sideways wheel is not this gesture.
-      if (e.deltaY === 0) return;
-
-      e.preventDefault();
-      getLenis()?.stop();
-      suspendSnap();
-      carousel.scrollLeft += e.deltaY;
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (!isPinned.current) return;
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      isScrollActive = true;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isPinned.current || !isScrollActive) return;
-
-      const currentY = e.touches[0].clientY;
-      const deltaY = touchStartY - currentY;
-      const deltaX = touchStartX - e.touches[0].clientX;
-
-      touchStartX = e.touches[0].clientX;
-      touchStartY = currentY;
-
-      // A sideways drag is the user swiping the strip itself, so it is left
-      // alone instead of being turned into a page hijack.
-      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
-
-      const { atStart, atEnd } = getScrollBounds();
-
-      if (deltaY > 0 && atEnd) {
-        releasePin();
-        return;
-      }
-      if (deltaY < 0 && atStart) {
-        releasePin();
-        return;
-      }
-
-      e.preventDefault();
-      getLenis()?.stop();
-      suspendSnap();
-      carousel.scrollLeft += deltaY * 1.4;
-    };
-
-    const handleTouchEnd = () => {
-      if (!isScrollActive) return;
-      isScrollActive = false;
-      carousel.style.scrollSnapType = "x mandatory";
-    };
-
-    /*
-     * Capture on the wheel listener, not bubble: Lenis takes the wheel events
-     * in the bubble phase and swallows them while it is stopped, so a release
-     * at either end of the strip has to be called before its handler runs or
-     * the first gesture past the end would be eaten and do nothing.
-     */
-    window.addEventListener("wheel", handleWheel, {
-      passive: false,
-      capture: true,
-    });
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    return () => {
-      clearTimeout(snapTimeout);
-      window.removeEventListener("wheel", handleWheel, { capture: true });
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [isMobile]);
 
   const justify =
     align === "center"
@@ -423,17 +226,59 @@ export default function HoverImageReveal({
     );
   };
 
+  /*
+   * Which card the strip has settled on. The stride is measured off a real
+   * card rather than taken as a share of the container width: the card is
+   * sized in vw and then capped by maxWidth, so a percentage of the container
+   * does not track it and the index drifts by the end of the strip.
+   */
+  const cardStride = () => {
+    const first = carouselRef.current?.firstElementChild as HTMLElement | null;
+    return first ? first.offsetWidth + CARD_GAP : 0;
+  };
+
+  const handleCarouselScroll = () => {
+    const carousel = carouselRef.current;
+    const stride = cardStride();
+    if (!carousel || stride <= 0) return;
+    const i = Math.round(carousel.scrollLeft / stride);
+    setActiveCard(Math.max(0, Math.min(i, list.length - 1)));
+  };
+
+  const scrollToCard = (i: number) => {
+    const carousel = carouselRef.current;
+    const stride = cardStride();
+    if (!carousel || stride <= 0) return;
+    carousel.scrollTo({ left: i * stride, behavior: "smooth" });
+  };
+
   if (isMobile) {
     return (
-      <div
-        ref={carouselRef}
-        className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-5"
-        style={{
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-          backgroundColor,
-        }}
-      >
+      <>
+        <div
+          ref={carouselRef}
+          onScroll={handleCarouselScroll}
+          /* `no-scrollbar` is the existing rule that hides the bar in
+             globals.css, kept so this needs no stylesheet change. */
+          className="no-scrollbar carousel-container"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            overflowX: "auto",
+            overflowY: "hidden",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollBehavior: "smooth",
+            gap: `${CARD_GAP}px`,
+            /* No side padding: the wrapper in the section already insets this
+               by 20px, and adding it again here would double that. */
+            padding: "0 0 20px 0",
+            width: "100%",
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+            backgroundColor,
+          }}
+        >
         {list.map((item, i) => {
           const bridge = item.image?.alt ?? item.description;
 
@@ -445,11 +290,30 @@ export default function HoverImageReveal({
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => onItemClick?.(i)}
-              className="relative flex h-[420px] w-[75vw] max-w-[320px] min-w-[260px] flex-shrink-0 snap-start flex-col overflow-hidden rounded-[10px] border-[0.5px] border-hairline bg-surface-1"
               style={{
+                scrollSnapAlign: "start",
+                scrollSnapStop: "always",
+                flexShrink: 0,
+                width: "80vw",
+                minWidth: "260px",
+                maxWidth: "320px",
+                height: "420px",
+                borderRadius: "14px",
+                background: "#141414",
+                border: "0.5px solid #1e1e1e",
+                position: "relative",
+                overflow: "hidden",
                 cursor: "none",
                 WebkitTapHighlightColor: "transparent",
-                touchAction: "manipulation",
+                /* Declares the card a horizontal panning surface, so a
+                   vertical drag is left to the page instead of being taken
+                   here. This is what replaces the old hijack. */
+                touchAction: "pan-x",
+                /* The media panel and the details block below it are a
+                   column, and the details block relies on flex-1 and
+                   mt-auto, so the card stays a flex container. */
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               {/* Media panel, melting into the card surface along its lower edge */}
@@ -499,7 +363,49 @@ export default function HoverImageReveal({
             </motion.div>
           );
         })}
-      </div>
+        </div>
+
+        {/* Position in the strip, and a way to jump straight to a card. */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "6px",
+            marginTop: "16px",
+            paddingBottom: "8px",
+          }}
+        >
+          {list.map((_, i) => (
+            <div
+              key={i}
+              onClick={() => scrollToCard(i)}
+              aria-hidden="true"
+              style={{
+                width: activeCard === i ? "20px" : "6px",
+                height: "6px",
+                borderRadius: "100px",
+                background: activeCard === i ? "#ffffff" : "#333333",
+                transition: `all 0.3s ${EASE}`,
+                cursor: "none",
+              }}
+            />
+          ))}
+        </div>
+
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: "10px",
+            color: "#2a2a2a",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            marginTop: "8px",
+            fontFamily: "Inter",
+          }}
+        >
+          Swipe to explore
+        </p>
+      </>
     );
   }
 
