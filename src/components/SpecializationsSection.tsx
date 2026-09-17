@@ -347,6 +347,14 @@ const LABEL_R = 175;
 const KNOW_MORE_R = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
 /** Half the angular span of the Know more arc, comfortably longer than the text. */
 const KNOW_MORE_SWEEP = 44;
+/**
+ * Outer radius of the mobile tap target. A slice reads as one shape to a
+ * thumb: the donut band, the seam on either side of it, and the curved label
+ * band that sits out past the rim. The hit wedge spans all of it, so the tap
+ * lands on the slice whether the finger reads the artwork or the label above
+ * it. Only used below 768, where hover cannot carry the interaction.
+ */
+const HIT_OUTER_R = 490;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -458,6 +466,14 @@ function SegmentMedia({
     transformOrigin: origin,
     transform: `translate(${translateX}%, ${translateY}%) scale(${scale})`,
     filter: config.filter,
+    /*
+     * These layers are the full 700px pie and sit directly over the slice
+     * path, so anything but a pass-through here swallows every tap on the
+     * slice. The foreignObject above already asks for this, but the img and
+     * the video inherit it across the foreignObject boundary only in some
+     * engines, so it is set on the layers themselves too.
+     */
+    pointerEvents: "none",
   }
 
   return (
@@ -469,6 +485,8 @@ function SegmentMedia({
         overflow: "hidden",
         // Shows through if an asset fails, so a slice is never empty.
         background: "rgba(0,10,25,0.85)",
+        // Same reason as the layers below: the slice path owns the tap.
+        pointerEvents: "none",
       }}
     >
       {/* Layer 1: thumbnail, dimmed at rest and faded out under the motion */}
@@ -633,6 +651,40 @@ export default function SpecializationsSection() {
   const handleSegmentTap = (segmentId: string) => {
     if (!isMobile) return;
     setTappedSegment((prev) => (prev === segmentId ? null : segmentId));
+  };
+
+  /**
+   * Touch runs the tap itself and stops the event there. A touch tap also
+   * produces a compatibility click, and if that click reached the same
+   * handler the toggle would run twice and land back where it started, which
+   * reads as a tap that did nothing. Touches are stamped so the click that
+   * belongs to the same gesture can be recognised and dropped. The stamp is
+   * the native event's own timeStamp rather than Date.now, which both keeps
+   * the two on one clock and stays out of render.
+   */
+  const lastTouchTap = useRef(0);
+
+  const handleSegmentTouch = (
+    segmentId: string,
+    event: React.TouchEvent<SVGElement>,
+  ) => {
+    event.preventDefault();
+    lastTouchTap.current = event.timeStamp;
+    handleSegmentTap(segmentId);
+  };
+
+  /** Desktop opens the project; a touch device toggles the slice open instead. */
+  const handleSegmentClick = (
+    segmentId: string,
+    project: SegmentProject,
+    event: React.MouseEvent<SVGElement>,
+  ) => {
+    if (!isMobile) {
+      setSelectedProject(project);
+      return;
+    }
+    if (event.timeStamp - lastTouchTap.current < 600) return;
+    handleSegmentTap(segmentId);
   };
 
   useEffect(() => {
@@ -873,7 +925,47 @@ export default function SpecializationsSection() {
                 transformBox: "view-box",
                 transformOrigin: "350px 350px",
               }}
+              onMouseEnter={
+                isMobile ? undefined : () => setHoveredSegment(segment.id)
+              }
+              onMouseLeave={
+                isMobile ? undefined : () => setHoveredSegment(null)
+              }
+              onClick={(event) =>
+                handleSegmentClick(segment.id, segment.primaryProject, event)
+              }
+              onTouchEnd={
+                isMobile
+                  ? (event) => handleSegmentTouch(segment.id, event)
+                  : undefined
+              }
             >
+              {/*
+                Mobile tap target. The whole geometric wedge rather than the
+                donut band alone, so a finger that lands on the seam, on the
+                label band, or anywhere between them still hits this slice.
+                Transparent rather than none: an unpainted fill has no
+                interior to hit-test, so it has to stay a real paint.
+              */}
+              {isMobile && (
+                <path
+                  d={describeArc(
+                    HIT_OUTER_R,
+                    INNER_R,
+                    segment.startAngle,
+                    segment.endAngle,
+                    0,
+                  )}
+                  fill="transparent"
+                  style={{ cursor: "none", pointerEvents: "all" }}
+                />
+              )}
+              {/*
+                The path carries no handlers of its own. It fills the core of
+                the wedge above, so its events bubble to the group, which owns
+                the single set of handlers. Duplicating them here would run
+                every tap twice and cancel the toggle out.
+              */}
               <motion.path
                 d={describeArc(
                   OUTER_R,
@@ -923,21 +1015,11 @@ export default function SpecializationsSection() {
                 filter={
                   activeSegment === segment.id ? "url(#segment-glow)" : undefined
                 }
-                onMouseEnter={
-                  isMobile ? undefined : () => setHoveredSegment(segment.id)
-                }
-                onMouseLeave={
-                  isMobile ? undefined : () => setHoveredSegment(null)
-                }
-                onClick={
-                  isMobile
-                    ? () => handleSegmentTap(segment.id)
-                    : () => setSelectedProject(segment.primaryProject)
-                }
                 style={{ cursor: "none", pointerEvents: "all" }}
               />
 
-              {/* Media inside the slice. Hits pass through to the path. */}
+              {/* Media inside the slice. Every layer in it passes the pointer
+                  straight through to the group, which owns the tap. */}
               <foreignObject
                 x={0}
                 y={0}
@@ -974,6 +1056,9 @@ export default function SpecializationsSection() {
                 y2={b.y}
                 stroke="#090909"
                 strokeWidth={2}
+                // The seams sit on top of the slices, so they would otherwise
+                // take the tap for themselves along a 2px band.
+                style={{ pointerEvents: "none" }}
               />
             );
           })}
@@ -1106,10 +1191,13 @@ export default function SpecializationsSection() {
               onMouseLeave={
                 isMobile ? undefined : () => setHoveredSegment(null)
               }
-              onClick={
+              onClick={(event) =>
+                handleSegmentClick(centerData.id, centerData.primaryProject, event)
+              }
+              onTouchEnd={
                 isMobile
-                  ? () => handleSegmentTap(centerData.id)
-                  : () => setSelectedProject(centerData.primaryProject)
+                  ? (event) => handleSegmentTouch(centerData.id, event)
+                  : undefined
               }
               style={{ cursor: "none", pointerEvents: "all" }}
             />
