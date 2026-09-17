@@ -2,11 +2,33 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
+import { getLenis } from "@/components/SmoothScroll";
 
 /** Stand-in footage for every project until the real clips exist. */
 const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
 
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+/**
+ * Hold the page still. Lenis drives the scroll position itself, so pausing the
+ * engine is what actually stops the page moving under the strip. It is also
+ * what stops it moving at all: a stopped Lenis cancels every touchmove it
+ * sees, upward ones included, which is why the frozen section needs the
+ * deliberate release in the handlers below rather than simply letting the
+ * reverse gesture through.
+ */
+const pausePageScroll = () => {
+  getLenis()?.stop();
+};
+
+/**
+ * Give the page back. An open overlay holds the same lock by way of
+ * `body { overflow: hidden }`, and starting the engine here would let the page
+ * scroll away behind it, so the lock is left alone when one is up.
+ */
+const resumePageScroll = () => {
+  if (document.body.style.overflow !== "hidden") getLenis()?.start();
+};
 
 /** Gap between carousel cards, shared by the layout and the dot arithmetic. */
 const CARD_GAP = 12;
@@ -100,45 +122,76 @@ export default function HoverImageReveal({
 
   /** Mobile only: the horizontally scrolling strip of cards. */
   const carouselRef = useRef<HTMLDivElement>(null);
+  /**
+   * The whole mobile block, strip plus dots. Centring is measured off this
+   * rather than the strip so it tracks the section the eye sees.
+   */
+  const sectionRef = useRef<HTMLDivElement>(null);
   /** Which card the strip has settled on, for the dots below it. */
   const [activeCard, setActiveCard] = useState(0);
-  /** True while downward input is being routed into the strip, not the page. */
+  /** True while the section holds the centre and downward input drives the strip. */
   const isHijacking = useRef(false);
   /**
-   * Latches once the strip has been driven to its last card. The transfer is a
-   * one time forward run: from then on the section scrolls like any other part
-   * of the page, so returning back up through it is never caught again.
+   * Latches once the strip has been driven to its last card. The pass is a one
+   * time run from the top down: from then on the section scrolls like any
+   * other part of the page, so returning back up through it is never caught.
    */
   const hasCompletedHijack = useRef(false);
+  /**
+   * Set when an upward drag hands the page back. Re-arming is held off until
+   * the section has actually left the centre, otherwise the next scroll event
+   * would pull it straight back into a freeze and the escape would not stick.
+   */
+  const released = useRef(false);
   /** Puts the strip's scroll snapping back once a driven gesture has settled. */
   const snapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
-   * Arm the transfer only while the strip holds the upper part of the screen,
-   * and only until it has been carried to the end once. Nothing here freezes
-   * the page: the hijack works by declining to let a downward gesture through,
-   * so an upward one always falls back to the browser's own scrolling.
+   * Take the page once the section reaches the middle of the screen, and give
+   * it back when the section leaves. A frozen page cannot emit scroll events,
+   * so this settles into one state per visit rather than oscillating.
    */
   useEffect(() => {
     if (!isMobile) return;
-    const carousel = carouselRef.current;
-    if (!carousel) return;
 
     const check = () => {
+      const target = sectionRef.current ?? carouselRef.current;
+      if (!target) return;
+
+      const rect = target.getBoundingClientRect();
+      const centered =
+        Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) < 100;
+
       if (hasCompletedHijack.current) {
-        isHijacking.current = false;
+        if (isHijacking.current) {
+          isHijacking.current = false;
+          resumePageScroll();
+        }
         return;
       }
-      const rect = carousel.getBoundingClientRect();
-      isHijacking.current =
-        rect.top <= window.innerHeight * 0.3 &&
-        rect.bottom >= window.innerHeight * 0.2;
+
+      if (released.current) {
+        if (centered) return;
+        released.current = false;
+      }
+
+      if (isHijacking.current === centered) return;
+
+      isHijacking.current = centered;
+      if (centered) {
+        pausePageScroll();
+      } else {
+        resumePageScroll();
+      }
     };
 
     window.addEventListener("scroll", check, { passive: true });
     check();
 
-    return () => window.removeEventListener("scroll", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      resumePageScroll();
+    };
   }, [isMobile]);
 
   /**
@@ -166,6 +219,7 @@ export default function HoverImageReveal({
       isHijacking.current = false;
       hasCompletedHijack.current = true;
       restoreSnap();
+      resumePageScroll();
     };
 
     /*
@@ -198,14 +252,29 @@ export default function HoverImageReveal({
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      if (!isHijacking.current || !tracking || hasCompletedHijack.current) {
-        return;
-      }
+      if (!tracking || hasCompletedHijack.current) return;
+
       const y = event.touches[0].clientY;
       const delta = touchY - y;
       touchY = y;
 
-      if (delta <= 0) return;
+      if (delta <= 0) {
+        /*
+         * The way out. While the section is frozen the engine is paused, and a
+         * paused engine cancels this gesture whatever it does, so an upward
+         * drag has to hand the page back explicitly before the browser can
+         * move again. It stays handed back until the section leaves the
+         * centre, which is what stops the freeze from simply re-taking it.
+         */
+        if (isHijacking.current) {
+          isHijacking.current = false;
+          released.current = true;
+          resumePageScroll();
+        }
+        return;
+      }
+
+      if (!isHijacking.current) return;
 
       if (atEnd()) {
         complete();
@@ -222,20 +291,42 @@ export default function HoverImageReveal({
     };
 
     /*
-     * Touch only, deliberately. Lenis owns the wheel: its listener runs on the
-     * window alongside this one, so `preventDefault` here does not stop it from
-     * scrolling the page out from under the strip, which disarms the hijack
-     * mid gesture. The only way to take the wheel from it is to stop the
-     * engine, and a stopped Lenis calls preventDefault on every touchmove it
-     * sees, which would freeze the page against the very upward swipe this has
-     * to leave alone. No wheel events exist on the devices this is for, so the
-     * wheel is left entirely as it is.
+     * The wheel only became safe to take here once the section started pausing
+     * the engine. While it ran, its listener on the same window drove the page
+     * regardless of what this one did, and the page slid out from under the
+     * strip mid gesture. Paused, it holds still instead, and on a narrow
+     * window a wheel is the only input there is, so without this the freeze
+     * would have no way to advance the strip or to let go.
      */
+    const handleWheel = (event: WheelEvent) => {
+      if (event.deltaY <= 0) {
+        /* The same escape the touch path takes. */
+        if (isHijacking.current && !hasCompletedHijack.current) {
+          isHijacking.current = false;
+          released.current = true;
+          resumePageScroll();
+        }
+        return;
+      }
+
+      if (!isHijacking.current || hasCompletedHijack.current) return;
+
+      if (atEnd()) {
+        complete();
+        return;
+      }
+
+      event.preventDefault();
+      drive(event.deltaY);
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
+      window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
@@ -403,7 +494,7 @@ export default function HoverImageReveal({
     return (
       /* Caps the strip's overflow here so it cannot reach the page and give
          the whole document a sideways scroll. */
-      <div style={{ width: "100%", overflowX: "hidden" }}>
+      <div ref={sectionRef} style={{ width: "100%", overflowX: "hidden" }}>
         <div
           ref={carouselRef}
           onScroll={handleCarouselScroll}
