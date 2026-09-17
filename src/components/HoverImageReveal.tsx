@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
+import { getLenis } from "@/components/SmoothScroll";
 
 /** Stand-in footage for every project until the real clips exist. */
 const PLACEHOLDER_GIF = "https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif";
@@ -20,6 +21,18 @@ const imgAlreadyFailed = (el: HTMLImageElement | null) =>
   !!el && el.complete && el.naturalWidth === 0;
 const videoAlreadyFailed = (el: HTMLVideoElement | null) =>
   !!el && el.error !== null;
+
+/**
+ * Lenis moves the scroll position itself, so `preventDefault` alone does not
+ * stop the page sliding under a hijacked carousel and the engine has to be
+ * stopped as well. An open project overlay holds the same lock, and it marks
+ * that state with `body { overflow: hidden }`, so the release is skipped while
+ * that flag is set: otherwise the carousel reaching a card boundary would hand
+ * scroll back to a page the overlay is still covering.
+ */
+const releasePageScroll = () => {
+  if (document.body.style.overflow !== "hidden") getLenis()?.start();
+};
 
 export type HoverImageRevealItem = {
   text?: string;
@@ -95,6 +108,13 @@ export default function HoverImageReveal({
   /** One flag for all rows: they share the same stand-in gif URL. */
   const [gifFailed, setGifFailed] = useState(false);
 
+  /** Mobile only: the horizontally scrolling strip of cards. */
+  const carouselRef = useRef<HTMLDivElement>(null);
+  /** True while vertical scroll drives the strip instead of the page. */
+  const isHijacking = useRef(false);
+  /** Card the strip is sitting on, however it got there. */
+  const currentCardIndex = useRef(0);
+
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
     const entry = items[`item${i + 1}`];
@@ -102,6 +122,156 @@ export default function HoverImageReveal({
       ? (entry as HoverImageRevealItem)
       : {};
   });
+
+  /**
+   * The hijack only arms while the strip is mostly on screen, so a gesture
+   * anywhere else on the page keeps scrolling the page as usual.
+   */
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = carouselRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const next = entry.isIntersecting && entry.intersectionRatio > 0.6;
+        // Scrolling past the strip must hand the page back, or it stays frozen.
+        if (!next && isHijacking.current) releasePageScroll();
+        isHijacking.current = next;
+      },
+      { threshold: 0.6 },
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      releasePageScroll();
+    };
+  }, [isMobile]);
+
+  /**
+   * Vertical scroll moves the cards one at a time and hands control back at
+   * either end of the strip. Both gestures are listened for on the window so a
+   * swipe that starts on a card is caught too, and the two ends release on the
+   * same rule: past the last card downward, before the first one upward.
+   */
+  useEffect(() => {
+    if (!isMobile) return;
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+
+    const scrollToCard = (index: number) => {
+      const card = carousel.children[index] as HTMLElement | undefined;
+      if (!card) return;
+
+      // Cards are 75vw clamped to 260-320px, so the real card is measured
+      // rather than assumed: the target has to land on a scroll-snap point.
+      const left =
+        carousel.scrollLeft +
+        card.getBoundingClientRect().left -
+        carousel.getBoundingClientRect().left;
+
+      carousel.scrollTo({ left, behavior: "smooth" });
+      currentCardIndex.current = index;
+    };
+
+    const atStart = () => currentCardIndex.current === 0;
+    const atEnd = () => currentCardIndex.current >= count - 1;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!isHijacking.current) return;
+
+      const direction = e.deltaY > 30 ? 1 : e.deltaY < -30 ? -1 : 0;
+      if (direction === 0) return;
+
+      if ((direction < 0 && atStart()) || (direction > 0 && atEnd())) {
+        releasePageScroll();
+        return;
+      }
+
+      e.preventDefault();
+      getLenis()?.stop();
+      scrollToCard(currentCardIndex.current + direction);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!isHijacking.current) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isSwiping = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isHijacking.current) return;
+
+      const deltaY = touchStartY - e.touches[0].clientY;
+      const deltaX = touchStartX - e.touches[0].clientX;
+
+      // A sideways drag is the user swiping the strip itself, so it is left
+      // alone instead of being turned into a page hijack.
+      if (Math.abs(deltaY) < 10 || Math.abs(deltaY) <= Math.abs(deltaX)) return;
+
+      if ((deltaY < 0 && atStart()) || (deltaY > 0 && atEnd())) {
+        releasePageScroll();
+        return;
+      }
+
+      e.preventDefault();
+      getLenis()?.stop();
+      isSwiping = true;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isHijacking.current || !isSwiping) return;
+
+      const deltaY = touchStartY - e.changedTouches[0].clientY;
+      if (deltaY > 40) {
+        scrollToCard(Math.min(currentCardIndex.current + 1, count - 1));
+      } else if (deltaY < -40) {
+        scrollToCard(Math.max(currentCardIndex.current - 1, 0));
+      }
+      isSwiping = false;
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isMobile, count]);
+
+  /** A manual swipe moves the strip too, so the index follows the real card. */
+  const handleCarouselScroll = () => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const containerLeft = carousel.getBoundingClientRect().left;
+    let closest = 0;
+    let smallest = Infinity;
+
+    Array.from(carousel.children).forEach((child, i) => {
+      const distance = Math.abs(
+        (child as HTMLElement).getBoundingClientRect().left - containerLeft,
+      );
+      if (distance < smallest) {
+        smallest = distance;
+        closest = i;
+      }
+    });
+
+    currentCardIndex.current = closest;
+  };
 
   const justify =
     align === "center"
@@ -221,6 +391,8 @@ export default function HoverImageReveal({
   if (isMobile) {
     return (
       <div
+        ref={carouselRef}
+        onScroll={handleCarouselScroll}
         className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-5"
         style={{
           WebkitOverflowScrolling: "touch",

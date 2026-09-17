@@ -297,6 +297,10 @@ export default function ProjectsSection() {
             setSelectedProject(projects[index])
           }}
         />
+
+        <div style={{ display: "none" }} className="mobile-scroll-hint">
+          Scroll to explore
+        </div>
       </div>
 
       {typeof window !== "undefined" && createPortal(
