@@ -1246,17 +1246,23 @@ export default function SpecializationsSection() {
 
                 const midDeg = midAngle(segment);
                 /*
-                 * The optical centre of the slice the label belongs to.
-                 * MEDIA_MID_R is the midline of the expanded band, and
-                 * HOVER_SHIFT carries it along the same outward slide the slice
-                 * itself makes, so the label sits centred in the shape rather
-                 * than crowding the Hardware disc at the inner edge. It also
-                 * lands where the slice vignette is deep enough to hold the
-                 * text, and well inside the arc labels out at 420 and beyond.
+                 * Centred in the crescent a tapped slice opens up. The slice
+                 * slides outward by HOVER_SHIFT, so the band between the
+                 * Hardware disc edge and the slice's new inner edge is empty,
+                 * and the label sits on its midline.
                  */
-                const pillR = MEDIA_MID_R + HOVER_SHIFT;
+                const pillR = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
                 const pillX = CX + pillR * Math.cos(toRad(midDeg));
                 const pillY = CY + pillR * Math.sin(toRad(midDeg));
+                /*
+                 * Laid along the crescent rather than across it, which is what
+                 * lets a label this wide fit a gap this narrow. That is the
+                 * tangent, mid-angle plus 90, except across the lower half of
+                 * the circle where that reads upside down and the opposite
+                 * tangent is used instead.
+                 */
+                const pillDeg =
+                  midDeg > 0 && midDeg < 180 ? midDeg - 90 : midDeg + 90;
 
                 return (
                   <motion.div
@@ -1281,7 +1287,14 @@ export default function SpecializationsSection() {
                       setSelectedProject(segment.primaryProject);
                     }}
                   >
-                    <KnowMoreLink />
+                    {/* The tilt lives on a plain element rather than on the
+                        motion div, whose transform framer owns for the entry
+                        scale. Keeping the two on separate elements means the
+                        static rotation cannot interact with the animated
+                        transform at all. */}
+                    <div style={{ rotate: `${pillDeg}deg` }}>
+                      <KnowMoreLink />
+                    </div>
                   </motion.div>
                 );
               })}
