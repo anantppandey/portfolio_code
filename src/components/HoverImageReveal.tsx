@@ -250,10 +250,6 @@ export default function HoverImageReveal({
               <div className="relative h-[210px] w-full flex-shrink-0 overflow-hidden bg-[#111111]">
                 {renderCardMedia(item, i)}
 
-                <span className="absolute right-[14px] top-[14px] rounded-full border-[0.5px] border-hairline bg-[rgba(9,9,9,0.55)] px-[9px] py-[3px] text-[10px] tracking-[0.14em] text-ink-muted backdrop-blur-sm">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-
                 <div
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-[60px]"
                   style={{
@@ -378,23 +374,6 @@ export default function HoverImageReveal({
                   {item.text}
                 </motion.div>
               </div>
-
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: isHovered ? "#444444" : "#1a1a1a",
-                  fontWeight: 400,
-                  letterSpacing: "0.14em",
-                  fontFamily: "Inter",
-                  transition: "color 0.2s ease",
-                  flexShrink: 0,
-                  marginLeft: "auto",
-                  paddingLeft: "32px",
-                  alignSelf: "center",
-                }}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
 
               <div
                 style={{
