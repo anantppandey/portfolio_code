@@ -531,6 +531,60 @@ function SegmentMedia({
   );
 }
 
+/**
+ * Call to action shown over an expanded slice, and over the Hardware disc, once
+ * a touch device has tapped one. Both sites render the same pill, so the styling
+ * lives here rather than being repeated at each one. The hover colours only
+ * resolve on a pointer device, which the pills do not currently reach, and are
+ * kept so the pill stays complete if it is ever shown on desktop.
+ */
+function KnowMorePill() {
+  return (
+    <div
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "#0099ff";
+        e.currentTarget.style.color = "#ffffff";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "#262626";
+        e.currentTarget.style.color = "#cccccc";
+      }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        background: "#141414",
+        border: "0.5px solid #262626",
+        borderRadius: "100px",
+        padding: "8px 16px",
+        fontSize: "11px",
+        fontWeight: 500,
+        color: "#cccccc",
+        fontFamily: "Inter",
+        letterSpacing: "0.02em",
+        whiteSpace: "nowrap",
+        WebkitTapHighlightColor: "transparent",
+        transition: "border-color 0.2s, color 0.2s",
+        boxShadow: "0 0 12px rgba(0,0,0,0.4)",
+      }}
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#0099ff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M5 12h14M12 5l7 7-7 7" />
+      </svg>
+      Know more
+    </div>
+  );
+}
+
 const PIE_KEYFRAMES = `
   @keyframes pulse-ring {
     0%, 100% { opacity: 0.4; transform: scale(1); }
@@ -1195,10 +1249,10 @@ export default function SpecializationsSection() {
                 return (
                   <motion.div
                     key={segment.id}
-                    initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                    initial={{ opacity: 0, scale: 0.88, y: 4 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.85, y: 6 }}
-                    transition={{ duration: 0.22, ease: EASE }}
+                    exit={{ opacity: 0, scale: 0.88, y: 4 }}
+                    transition={{ duration: 0.2, ease: EASE }}
                     style={{
                       position: "absolute",
                       left: pillX,
@@ -1215,42 +1269,7 @@ export default function SpecializationsSection() {
                       setSelectedProject(segment.primaryProject);
                     }}
                   >
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        background: "rgba(9,9,9,0.9)",
-                        backdropFilter: "blur(12px)",
-                        border: "0.5px solid rgba(0,153,255,0.5)",
-                        borderRadius: "100px",
-                        padding: "9px 18px",
-                        fontSize: "12px",
-                        fontWeight: 500,
-                        color: "#ffffff",
-                        fontFamily: "Inter",
-                        letterSpacing: "-0.2px",
-                        whiteSpace: "nowrap",
-                        WebkitTapHighlightColor: "transparent",
-                        boxShadow: "0 0 16px rgba(0,153,255,0.2)",
-                      }}
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#0099ff"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="16" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                      </svg>
-                      View details
-                    </div>
+                    <KnowMorePill />
                   </motion.div>
                 );
               })}
@@ -1260,10 +1279,10 @@ export default function SpecializationsSection() {
             {isMobile && activeSegment === centerData.id && (
               <motion.div
                 key={centerData.id}
-                initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                initial={{ opacity: 0, scale: 0.88, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: 6 }}
-                transition={{ duration: 0.22, ease: EASE }}
+                exit={{ opacity: 0, scale: 0.88, y: 4 }}
+                transition={{ duration: 0.2, ease: EASE }}
                 style={{
                   position: "absolute",
                   left: CX,
@@ -1282,42 +1301,7 @@ export default function SpecializationsSection() {
                   setSelectedProject(centerData.primaryProject);
                 }}
               >
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    background: "rgba(9,9,9,0.9)",
-                    backdropFilter: "blur(12px)",
-                    border: "0.5px solid rgba(0,153,255,0.5)",
-                    borderRadius: "100px",
-                    padding: "9px 18px",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    color: "#ffffff",
-                    fontFamily: "Inter",
-                    letterSpacing: "-0.2px",
-                    whiteSpace: "nowrap",
-                    WebkitTapHighlightColor: "transparent",
-                    boxShadow: "0 0 16px rgba(0,153,255,0.2)",
-                  }}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#0099ff"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
-                  View details
-                </div>
+                <KnowMorePill />
               </motion.div>
             )}
           </AnimatePresence>
