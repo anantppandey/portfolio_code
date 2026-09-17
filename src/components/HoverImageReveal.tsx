@@ -102,6 +102,146 @@ export default function HoverImageReveal({
   const carouselRef = useRef<HTMLDivElement>(null);
   /** Which card the strip has settled on, for the dots below it. */
   const [activeCard, setActiveCard] = useState(0);
+  /** True while downward input is being routed into the strip, not the page. */
+  const isHijacking = useRef(false);
+  /**
+   * Latches once the strip has been driven to its last card. The transfer is a
+   * one time forward run: from then on the section scrolls like any other part
+   * of the page, so returning back up through it is never caught again.
+   */
+  const hasCompletedHijack = useRef(false);
+  /** Puts the strip's scroll snapping back once a driven gesture has settled. */
+  const snapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Arm the transfer only while the strip holds the upper part of the screen,
+   * and only until it has been carried to the end once. Nothing here freezes
+   * the page: the hijack works by declining to let a downward gesture through,
+   * so an upward one always falls back to the browser's own scrolling.
+   */
+  useEffect(() => {
+    if (!isMobile) return;
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const check = () => {
+      if (hasCompletedHijack.current) {
+        isHijacking.current = false;
+        return;
+      }
+      const rect = carousel.getBoundingClientRect();
+      isHijacking.current =
+        rect.top <= window.innerHeight * 0.3 &&
+        rect.bottom >= window.innerHeight * 0.2;
+    };
+
+    window.addEventListener("scroll", check, { passive: true });
+    check();
+
+    return () => window.removeEventListener("scroll", check);
+  }, [isMobile]);
+
+  /**
+   * Move the strip with downward input. Upward input is deliberately left
+   * alone rather than being cancelled: this only ever runs forwards, and
+   * swallowing the reverse gesture is what previously left the page unable to
+   * scroll back out of the section.
+   */
+  useEffect(() => {
+    if (!isMobile) return;
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const atEnd = () =>
+      carousel.scrollLeft >=
+      carousel.scrollWidth - carousel.clientWidth - 5;
+
+    const restoreSnap = () => {
+      carousel.style.scrollSnapType = "x mandatory";
+      carousel.style.scrollBehavior = "smooth";
+    };
+
+    /** The run is over for good: hand the section back to normal scrolling. */
+    const complete = () => {
+      isHijacking.current = false;
+      hasCompletedHijack.current = true;
+      restoreSnap();
+    };
+
+    /*
+     * Snapping and a gesture that is being driven frame by frame fight each
+     * other, so it steps aside while input is arriving and returns once the
+     * input settles.
+     *
+     * Smooth scrolling steps aside with it. `scroll-behavior: smooth` animates
+     * toward each new target, and reading scrollLeft back hands out the value
+     * from before the animation, so a drag arriving faster than the animation
+     * can follow only ever contributes its latest delta. Driven input is
+     * applied instantly instead; smooth comes back with the snapping, so the
+     * dots still glide when they are tapped.
+     */
+    const drive = (delta: number) => {
+      carousel.style.scrollSnapType = "none";
+      carousel.style.scrollBehavior = "auto";
+      if (snapTimeout.current) clearTimeout(snapTimeout.current);
+      snapTimeout.current = setTimeout(restoreSnap, 150);
+      carousel.scrollLeft += delta;
+    };
+
+    let touchY = 0;
+    let tracking = false;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (!isHijacking.current || hasCompletedHijack.current) return;
+      touchY = event.touches[0].clientY;
+      tracking = true;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isHijacking.current || !tracking || hasCompletedHijack.current) {
+        return;
+      }
+      const y = event.touches[0].clientY;
+      const delta = touchY - y;
+      touchY = y;
+
+      if (delta <= 0) return;
+
+      if (atEnd()) {
+        complete();
+        return;
+      }
+
+      event.preventDefault();
+      drive(delta * 1.4);
+    };
+
+    const handleTouchEnd = () => {
+      tracking = false;
+      if (!hasCompletedHijack.current) restoreSnap();
+    };
+
+    /*
+     * Touch only, deliberately. Lenis owns the wheel: its listener runs on the
+     * window alongside this one, so `preventDefault` here does not stop it from
+     * scrolling the page out from under the strip, which disarms the hijack
+     * mid gesture. The only way to take the wheel from it is to stop the
+     * engine, and a stopped Lenis calls preventDefault on every touchmove it
+     * sees, which would freeze the page against the very upward swipe this has
+     * to leave alone. No wheel events exist on the devices this is for, so the
+     * wheel is left entirely as it is.
+     */
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      if (snapTimeout.current) clearTimeout(snapTimeout.current);
+    };
+  }, [isMobile]);
 
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
