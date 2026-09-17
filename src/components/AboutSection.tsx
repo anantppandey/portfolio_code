@@ -29,7 +29,7 @@ export default function AboutSection() {
       id="about"
       className="relative z-[1] w-full overflow-hidden bg-canvas"
     >
-      <div className="about-inner relative z-[1] mx-auto max-w-[1400px] px-6 py-[60px] md:px-[60px] md:py-[96px]">
+      <div className="about-inner relative z-[1] mx-auto max-w-[1400px] px-6 py-[60px] md:px-[60px] md:py-[80px]">
         {/* Section number label */}
         <motion.p
           initial={{ opacity: 0 }}
@@ -41,7 +41,7 @@ export default function AboutSection() {
           03 — About
         </motion.p>
 
-        <div className="flex flex-col gap-[64px] lg:flex-row">
+        <div className="about-grid flex flex-col gap-[64px] lg:flex-row">
           {/* Left column */}
           <div className="flex flex-1 flex-col gap-8 lg:max-w-[60%]">
             {/* Section tag pill */}

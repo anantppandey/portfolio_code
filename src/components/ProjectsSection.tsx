@@ -205,7 +205,7 @@ export default function ProjectsSection() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        padding: isMobile ? "48px 20px" : "80px 0 96px 0",
+        padding: isMobile ? "48px 20px" : "80px 0 80px 0",
         position: "relative",
         zIndex: 1,
         overflow: "hidden",
@@ -261,7 +261,7 @@ export default function ProjectsSection() {
         className="hover-reveal-wrapper"
         style={{
           flex: 1,
-          minHeight: "400px",
+          minHeight: "auto",
           padding: isMobile ? "0 20px" : "0 80px",
           position: "relative",
           zIndex: 1,

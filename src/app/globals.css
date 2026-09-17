@@ -320,6 +320,13 @@ footer::before {
     padding-bottom: 48px !important;
   }
 
+  /* The bio and the skill cards sit side by side on desktop, where a 64px
+     gutter reads as a column break. Stacked on mobile that same value becomes
+     64px of dead vertical space between the two blocks. */
+  .about-grid {
+    gap: 32px !important;
+  }
+
   .skill-cards-container {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
