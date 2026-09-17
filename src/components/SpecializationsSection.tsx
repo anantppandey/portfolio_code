@@ -533,50 +533,55 @@ function SegmentMedia({
 
 /**
  * Call to action shown over an expanded slice, and over the Hardware disc, once
- * a touch device has tapped one. Both sites render the same pill, so the styling
- * lives here rather than being repeated at each one. The hover colours only
- * resolve on a pointer device, which the pills do not currently reach, and are
- * kept so the pill stays complete if it is ever shown on desktop.
+ * a touch device has tapped one. Both sites render the same label, so the
+ * styling lives here rather than being repeated at each one.
+ *
+ * Bare text rather than a pill. Two things the pill's chrome was quietly doing
+ * are kept: the padding stays, now invisible, because it is the touch target,
+ * and the drop shadow becomes a text shadow, because the label sits directly on
+ * the slice photography and several of those frames are bright enough to
+ * swallow unshadowed text. The hover colour only resolves on a pointer device,
+ * which this does not currently reach, and is kept so it stays complete if it
+ * is ever shown on desktop.
  */
-function KnowMorePill() {
+function KnowMoreLink() {
   return (
     <div
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#0099ff";
         e.currentTarget.style.color = "#ffffff";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#262626";
-        e.currentTarget.style.color = "#cccccc";
+        e.currentTarget.style.color = "#0099ff";
       }}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: "6px",
-        background: "#141414",
-        border: "0.5px solid #262626",
-        borderRadius: "100px",
+        gap: "8px",
         padding: "8px 16px",
-        fontSize: "11px",
+        fontSize: "16.5px",
         fontWeight: 500,
-        color: "#cccccc",
+        color: "#0099ff",
         fontFamily: "Inter",
         letterSpacing: "0.02em",
         whiteSpace: "nowrap",
         WebkitTapHighlightColor: "transparent",
-        transition: "border-color 0.2s, color 0.2s",
-        boxShadow: "0 0 12px rgba(0,0,0,0.4)",
+        transition: "color 0.2s",
+        textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)",
       }}
     >
       <svg
-        width="10"
-        height="10"
+        width="15"
+        height="15"
         viewBox="0 0 24 24"
         fill="none"
         stroke="#0099ff"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        style={{
+          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.9))",
+          flexShrink: 0,
+        }}
       >
         <path d="M5 12h14M12 5l7 7-7 7" />
       </svg>
@@ -1273,7 +1278,7 @@ export default function SpecializationsSection() {
                       setSelectedProject(segment.primaryProject);
                     }}
                   >
-                    <KnowMorePill />
+                    <KnowMoreLink />
                   </motion.div>
                 );
               })}
@@ -1305,7 +1310,7 @@ export default function SpecializationsSection() {
                   setSelectedProject(centerData.primaryProject);
                 }}
               >
-                <KnowMorePill />
+                <KnowMoreLink />
               </motion.div>
             )}
           </AnimatePresence>
