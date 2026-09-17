@@ -624,6 +624,17 @@ export default function SpecializationsSection() {
   /** Hover drives the expand on desktop, tap drives it on mobile. */
   const activeSegment = isMobile ? tappedSegment : hoveredSegment;
 
+  /*
+   * One place for the mobile toggle, called by the slice paths and by the
+   * Hardware disc. The functional update reads the live value rather than the
+   * one captured when the handler was created. Desktop keeps its own
+   * handlers: hover drives the expand there and a click opens the project.
+   */
+  const handleSegmentTap = (segmentId: string) => {
+    if (!isMobile) return;
+    setTappedSegment((prev) => (prev === segmentId ? null : segmentId));
+  };
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -920,10 +931,7 @@ export default function SpecializationsSection() {
                 }
                 onClick={
                   isMobile
-                    ? () =>
-                        setTappedSegment(
-                          tappedSegment === segment.id ? null : segment.id,
-                        )
+                    ? () => handleSegmentTap(segment.id)
                     : () => setSelectedProject(segment.primaryProject)
                 }
                 style={{ cursor: "none", pointerEvents: "all" }}
@@ -1071,17 +1079,26 @@ export default function SpecializationsSection() {
                 Hardware
               </text>
             </motion.g>
-            <motion.circle
+            {/*
+              A plain circle, not a motion one. This is the Hardware hit area,
+              and when framer owned its `r` through `animate` the attribute
+              read "undefined" until an animation frame wrote a real value,
+              which left the element 0 by 0 with no hit area at all. That is
+              the source of the repeated `<circle> attribute r` console error,
+              and it is why tapping the middle of the disc did nothing.
+
+              The radius now comes straight from state, so it is always a
+              valid number. It steps rather than eases, which an invisible
+              target does not care about, and it tracks the disc: 108 at rest,
+              so it does not reach over the slices that start at 110, and the
+              expanded 150 while the disc is open so the whole of it answers.
+            */}
+            <circle
               cx={CX}
               cy={CY}
-              r={HARDWARE_R}
-              animate={{
-                r:
-                  activeSegment === centerData.id
-                    ? HARDWARE_HOVER_R
-                    : HARDWARE_R,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              r={
+                activeSegment === centerData.id ? HARDWARE_HOVER_R : HARDWARE_R
+              }
               fill="transparent"
               onMouseEnter={
                 isMobile ? undefined : () => setHoveredSegment(centerData.id)
@@ -1091,10 +1108,7 @@ export default function SpecializationsSection() {
               }
               onClick={
                 isMobile
-                  ? () =>
-                      setTappedSegment(
-                        tappedSegment === centerData.id ? null : centerData.id,
-                      )
+                  ? () => handleSegmentTap(centerData.id)
                   : () => setSelectedProject(centerData.primaryProject)
               }
               style={{ cursor: "none", pointerEvents: "all" }}
