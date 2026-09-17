@@ -265,6 +265,13 @@ export default function HoverImageReveal({
             display: "flex",
             flexDirection: "row",
             overflowX: "auto",
+            /*
+             * Stays `hidden`. `visible` cannot survive next to a scrolling
+             * axis: the spec computes it to `auto`, which would make this a
+             * vertical scroll container and give it a second chance to
+             * swallow the page's upward gesture. No `touch-action` here
+             * either, for the reason given on the card below.
+             */
             overflowY: "hidden",
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
@@ -305,10 +312,21 @@ export default function HoverImageReveal({
                 overflow: "hidden",
                 cursor: "none",
                 WebkitTapHighlightColor: "transparent",
-                /* Declares the card a horizontal panning surface, so a
-                   vertical drag is left to the page instead of being taken
-                   here. This is what replaces the old hijack. */
-                touchAction: "pan-x",
+                /*
+                 * Not `pan-x`. The allowed gestures for a touch are the
+                 * intersection of `touch-action` from the touched element up
+                 * through its ancestors, so `pan-x` here forbids vertical
+                 * panning for any gesture that starts on a card, at every
+                 * level including the page. The cards are 420px tall and cover
+                 * most of the section, so that left an upward swipe through
+                 * Projects scrolling nothing at all.
+                 *
+                 * `manipulation` allows both axes and only drops double tap
+                 * zoom, which a tappable card wants gone anyway. Direction is
+                 * left to the browser: a sideways swipe finds the carousel,
+                 * a vertical one finds the page.
+                 */
+                touchAction: "manipulation",
                 /* The media panel and the details block below it are a
                    column, and the details block relies on flex-1 and
                    mt-auto, so the card stays a flex container. */
