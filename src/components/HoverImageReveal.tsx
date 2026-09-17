@@ -123,10 +123,19 @@ export default function HoverImageReveal({
       .slice(0, 2)
       .toUpperCase();
 
+  /*
+   * `contain`, not `cover`. The carousel's assets do not share an aspect
+   * ratio: five are around 16:9, two are 4:3, and two are 9:16 phone capture.
+   * A single frame cannot crop its way to all three, and `cover` was taking
+   * 25% off the sides of every 16:9 clip and 58% off the top and bottom of the
+   * portrait ones. Containing them shows each in full and lets the frame's own
+   * dark ground read as letterboxing, which the gradient along the lower edge
+   * already blends into the card.
+   */
   const fillMedia: CSSProperties = {
     width: "100%",
     height: "100%",
-    objectFit: "cover",
+    objectFit: "contain",
     objectPosition: "center",
     display: "block",
   };
