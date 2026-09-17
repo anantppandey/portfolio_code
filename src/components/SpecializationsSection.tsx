@@ -1050,12 +1050,22 @@ export default function SpecializationsSection() {
             const toolsRadius = activeSegment === segment.id ? 452 : 365;
             const descriptionRadius = activeSegment === segment.id ? 470 : 365;
 
+            /*
+             * Text on a clockwise arc reads upside down across the lower half
+             * of the circle, where the tangent runs right to left. SVG y grows
+             * downward, so that is any mid-angle between 0 and 180 - the
+             * Data Collection slice, centred at 90. Those labels trace the
+             * same circle anticlockwise instead, which puts the baseline the
+             * right way up without moving the text off its radius.
+             */
+            const flip = angle > 0 && angle < 180;
+
             const makeArc = (radius: number) => {
-              const start = angle - 52;
-              const end = angle + 52;
-              const startPoint = polar(radius, start);
-              const endPoint = polar(radius, end);
-              return `M ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 0 1 ${endPoint.x} ${endPoint.y}`;
+              const from = polar(radius, flip ? angle + 52 : angle - 52);
+              const to = polar(radius, flip ? angle - 52 : angle + 52);
+              return `M ${from.x} ${from.y} A ${radius} ${radius} 0 0 ${
+                flip ? 0 : 1
+              } ${to.x} ${to.y}`;
             };
 
             return (
@@ -1140,10 +1150,10 @@ export default function SpecializationsSection() {
                   }}
                   transition={{ duration: 0.3, delay: 0.03, ease: EASE }}
                   fill="#777777"
-                  fontSize={11}
+                  fontSize={13}
                   fontWeight={500}
                   fontFamily="Inter"
-                  letterSpacing="0.9px"
+                  letterSpacing="0.08em"
                   textAnchor="middle"
                   dominantBaseline="middle"
                 >
