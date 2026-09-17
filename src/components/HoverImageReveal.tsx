@@ -110,8 +110,10 @@ export default function HoverImageReveal({
 
   /** Mobile only: the horizontally scrolling strip of cards. */
   const carouselRef = useRef<HTMLDivElement>(null);
-  /** True while vertical scroll drives the strip instead of the page. */
-  const isHijacking = useRef(false);
+  /** True while the section is pinned and drives the scroll instead of the page. */
+  const isPinned = useRef(false);
+  /** Set by a boundary release so the lock cannot re-arm on the same spot. */
+  const pinSuppressed = useRef(false);
 
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
@@ -122,46 +124,62 @@ export default function HoverImageReveal({
   });
 
   /**
-   * The hijack only arms while the strip is mostly on screen, so a gesture
-   * anywhere else on the page keeps scrolling the page as usual. Lenis is
-   * stopped for as long as that holds and handed back the moment it stops
-   * holding, or the page would stay frozen once the strip scrolls away.
+   * The lock arms only once the section has reached the top of the screen, so
+   * the first part of the section scrolls like anything else and the carousel
+   * never picks the gesture up half a screen early. The section is 653px
+   * against an 844px viewport on mobile, so the test is "the top has arrived
+   * and the section is still on screen" rather than a full height one, which
+   * a short section could never satisfy.
+   *
+   * A boundary release suppresses re-arming until the section has cleared the
+   * zone: without that the next scroll event would pin it straight back and
+   * the page could never leave.
    */
   useEffect(() => {
     if (!isMobile) return;
-    const el = carouselRef.current;
-    if (!el) return;
+    const carousel = carouselRef.current;
+    if (!carousel) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const active = entry.isIntersecting && entry.intersectionRatio > 0.6;
-        if (isHijacking.current === active) return;
+    // The section belongs to the page rather than to this component, so it is
+    // resolved from the DOM instead of being passed in.
+    const section = carousel.closest("section");
+    if (!section) return;
 
-        isHijacking.current = active;
-        if (active) {
-          getLenis()?.stop();
-        } else {
-          releasePageScroll();
-        }
-      },
-      { threshold: 0.6 },
-    );
+    const checkPin = () => {
+      const rect = section.getBoundingClientRect();
 
-    observer.observe(el);
+      if (pinSuppressed.current) {
+        if (rect.top > 40 || rect.bottom <= 0) pinSuppressed.current = false;
+        return;
+      }
+
+      const inZone = rect.top <= 10 && rect.bottom > 0;
+      if (isPinned.current === inZone) return;
+
+      isPinned.current = inZone;
+      if (inZone) {
+        getLenis()?.stop();
+      } else {
+        releasePageScroll();
+      }
+    };
+
+    window.addEventListener("scroll", checkPin, { passive: true });
+    checkPin();
 
     return () => {
-      observer.disconnect();
+      window.removeEventListener("scroll", checkPin);
       releasePageScroll();
     };
   }, [isMobile]);
 
   /**
-   * Vertical scroll is translated straight into `scrollLeft`, so the strip
-   * tracks the gesture instead of stepping a card at a time. Snapping is
-   * switched off while a gesture is moving the strip and restored once it
-   * settles, which is what keeps continuous motion from fighting the snap
-   * points. Both gestures are listened for on the window so a swipe that
-   * starts on a card is caught too, and either end hands the page back on the
+   * While the section is pinned, vertical scroll is translated straight into
+   * `scrollLeft`, so the strip tracks the gesture instead of stepping a card
+   * at a time. Snapping is switched off while a gesture is moving the strip
+   * and restored once it settles, which is what keeps continuous motion from
+   * fighting the snap points. Both gestures are listened for on the window so
+   * a swipe that starts on a card is caught too, and either end unpins on the
    * same rule: past the last card downward, before the first one upward.
    */
   useEffect(() => {
@@ -178,8 +196,8 @@ export default function HoverImageReveal({
       const maxScroll = carousel.scrollWidth - carousel.clientWidth;
       const currentScroll = carousel.scrollLeft;
       return {
-        atStart: currentScroll <= 2,
-        atEnd: currentScroll >= maxScroll - 2,
+        atStart: currentScroll <= 5,
+        atEnd: currentScroll >= maxScroll - 5,
         maxScroll,
       };
     };
@@ -192,17 +210,26 @@ export default function HoverImageReveal({
       }, 150);
     };
 
+    /* Handing the gesture back at either end: unpinned, held from re-arming,
+       and Lenis resumed so the same event continues into the page rather than
+       being swallowed by a stopped engine. */
+    const releasePin = () => {
+      isPinned.current = false;
+      pinSuppressed.current = true;
+      releasePageScroll();
+    };
+
     const handleWheel = (e: WheelEvent) => {
-      if (!isHijacking.current) return;
+      if (!isPinned.current) return;
 
       const { atStart, atEnd } = getScrollBounds();
 
       if (e.deltaY > 0 && atEnd) {
-        releasePageScroll();
+        releasePin();
         return;
       }
       if (e.deltaY < 0 && atStart) {
-        releasePageScroll();
+        releasePin();
         return;
       }
       // A sideways wheel is not this gesture.
@@ -215,14 +242,14 @@ export default function HoverImageReveal({
     };
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (!isHijacking.current) return;
+      if (!isPinned.current) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       isScrollActive = true;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isHijacking.current || !isScrollActive) return;
+      if (!isPinned.current || !isScrollActive) return;
 
       const currentY = e.touches[0].clientY;
       const deltaY = touchStartY - currentY;
@@ -238,18 +265,18 @@ export default function HoverImageReveal({
       const { atStart, atEnd } = getScrollBounds();
 
       if (deltaY > 0 && atEnd) {
-        releasePageScroll();
+        releasePin();
         return;
       }
       if (deltaY < 0 && atStart) {
-        releasePageScroll();
+        releasePin();
         return;
       }
 
       e.preventDefault();
       getLenis()?.stop();
       suspendSnap();
-      carousel.scrollLeft += deltaY * 1.5;
+      carousel.scrollLeft += deltaY * 1.4;
     };
 
     const handleTouchEnd = () => {
