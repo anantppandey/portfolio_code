@@ -112,8 +112,6 @@ export default function HoverImageReveal({
   const carouselRef = useRef<HTMLDivElement>(null);
   /** True while vertical scroll drives the strip instead of the page. */
   const isHijacking = useRef(false);
-  /** Card the strip is sitting on, however it got there. */
-  const currentCardIndex = useRef(0);
 
   const count = Number(items.itemCount ?? 0);
   const list: HoverImageRevealItem[] = Array.from({ length: count }, (_, i) => {
@@ -125,7 +123,9 @@ export default function HoverImageReveal({
 
   /**
    * The hijack only arms while the strip is mostly on screen, so a gesture
-   * anywhere else on the page keeps scrolling the page as usual.
+   * anywhere else on the page keeps scrolling the page as usual. Lenis is
+   * stopped for as long as that holds and handed back the moment it stops
+   * holding, or the page would stay frozen once the strip scrolls away.
    */
   useEffect(() => {
     if (!isMobile) return;
@@ -134,10 +134,15 @@ export default function HoverImageReveal({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        const next = entry.isIntersecting && entry.intersectionRatio > 0.6;
-        // Scrolling past the strip must hand the page back, or it stays frozen.
-        if (!next && isHijacking.current) releasePageScroll();
-        isHijacking.current = next;
+        const active = entry.isIntersecting && entry.intersectionRatio > 0.6;
+        if (isHijacking.current === active) return;
+
+        isHijacking.current = active;
+        if (active) {
+          getLenis()?.stop();
+        } else {
+          releasePageScroll();
+        }
       },
       { threshold: 0.6 },
     );
@@ -151,9 +156,12 @@ export default function HoverImageReveal({
   }, [isMobile]);
 
   /**
-   * Vertical scroll moves the cards one at a time and hands control back at
-   * either end of the strip. Both gestures are listened for on the window so a
-   * swipe that starts on a card is caught too, and the two ends release on the
+   * Vertical scroll is translated straight into `scrollLeft`, so the strip
+   * tracks the gesture instead of stepping a card at a time. Snapping is
+   * switched off while a gesture is moving the strip and restored once it
+   * settles, which is what keeps continuous motion from fighting the snap
+   * points. Both gestures are listened for on the window so a swipe that
+   * starts on a card is caught too, and either end hands the page back on the
    * same rule: past the last card downward, before the first one upward.
    */
   useEffect(() => {
@@ -163,115 +171,115 @@ export default function HoverImageReveal({
 
     let touchStartX = 0;
     let touchStartY = 0;
-    let isSwiping = false;
+    let isScrollActive = false;
+    let snapTimeout: ReturnType<typeof setTimeout> | undefined;
 
-    const scrollToCard = (index: number) => {
-      const card = carousel.children[index] as HTMLElement | undefined;
-      if (!card) return;
-
-      // Cards are 75vw clamped to 260-320px, so the real card is measured
-      // rather than assumed: the target has to land on a scroll-snap point.
-      const left =
-        carousel.scrollLeft +
-        card.getBoundingClientRect().left -
-        carousel.getBoundingClientRect().left;
-
-      carousel.scrollTo({ left, behavior: "smooth" });
-      currentCardIndex.current = index;
+    const getScrollBounds = () => {
+      const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+      const currentScroll = carousel.scrollLeft;
+      return {
+        atStart: currentScroll <= 2,
+        atEnd: currentScroll >= maxScroll - 2,
+        maxScroll,
+      };
     };
 
-    const atStart = () => currentCardIndex.current === 0;
-    const atEnd = () => currentCardIndex.current >= count - 1;
+    const suspendSnap = () => {
+      carousel.style.scrollSnapType = "none";
+      clearTimeout(snapTimeout);
+      snapTimeout = setTimeout(() => {
+        carousel.style.scrollSnapType = "x mandatory";
+      }, 150);
+    };
 
     const handleWheel = (e: WheelEvent) => {
       if (!isHijacking.current) return;
 
-      const direction = e.deltaY > 30 ? 1 : e.deltaY < -30 ? -1 : 0;
-      if (direction === 0) return;
+      const { atStart, atEnd } = getScrollBounds();
 
-      if ((direction < 0 && atStart()) || (direction > 0 && atEnd())) {
+      if (e.deltaY > 0 && atEnd) {
         releasePageScroll();
         return;
       }
+      if (e.deltaY < 0 && atStart) {
+        releasePageScroll();
+        return;
+      }
+      // A sideways wheel is not this gesture.
+      if (e.deltaY === 0) return;
 
       e.preventDefault();
       getLenis()?.stop();
-      scrollToCard(currentCardIndex.current + direction);
+      suspendSnap();
+      carousel.scrollLeft += e.deltaY;
     };
 
     const handleTouchStart = (e: TouchEvent) => {
       if (!isHijacking.current) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
-      isSwiping = false;
+      isScrollActive = true;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isHijacking.current) return;
+      if (!isHijacking.current || !isScrollActive) return;
 
-      const deltaY = touchStartY - e.touches[0].clientY;
+      const currentY = e.touches[0].clientY;
+      const deltaY = touchStartY - currentY;
       const deltaX = touchStartX - e.touches[0].clientX;
+
+      touchStartX = e.touches[0].clientX;
+      touchStartY = currentY;
 
       // A sideways drag is the user swiping the strip itself, so it is left
       // alone instead of being turned into a page hijack.
-      if (Math.abs(deltaY) < 10 || Math.abs(deltaY) <= Math.abs(deltaX)) return;
+      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
 
-      if ((deltaY < 0 && atStart()) || (deltaY > 0 && atEnd())) {
+      const { atStart, atEnd } = getScrollBounds();
+
+      if (deltaY > 0 && atEnd) {
+        releasePageScroll();
+        return;
+      }
+      if (deltaY < 0 && atStart) {
         releasePageScroll();
         return;
       }
 
       e.preventDefault();
       getLenis()?.stop();
-      isSwiping = true;
+      suspendSnap();
+      carousel.scrollLeft += deltaY * 1.5;
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!isHijacking.current || !isSwiping) return;
-
-      const deltaY = touchStartY - e.changedTouches[0].clientY;
-      if (deltaY > 40) {
-        scrollToCard(Math.min(currentCardIndex.current + 1, count - 1));
-      } else if (deltaY < -40) {
-        scrollToCard(Math.max(currentCardIndex.current - 1, 0));
-      }
-      isSwiping = false;
+    const handleTouchEnd = () => {
+      if (!isScrollActive) return;
+      isScrollActive = false;
+      carousel.style.scrollSnapType = "x mandatory";
     };
 
-    window.addEventListener("wheel", handleWheel, { passive: false });
+    /*
+     * Capture on the wheel listener, not bubble: Lenis takes the wheel events
+     * in the bubble phase and swallows them while it is stopped, so a release
+     * at either end of the strip has to be called before its handler runs or
+     * the first gesture past the end would be eaten and do nothing.
+     */
+    window.addEventListener("wheel", handleWheel, {
+      passive: false,
+      capture: true,
+    });
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
-      window.removeEventListener("wheel", handleWheel);
+      clearTimeout(snapTimeout);
+      window.removeEventListener("wheel", handleWheel, { capture: true });
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isMobile, count]);
-
-  /** A manual swipe moves the strip too, so the index follows the real card. */
-  const handleCarouselScroll = () => {
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-
-    const containerLeft = carousel.getBoundingClientRect().left;
-    let closest = 0;
-    let smallest = Infinity;
-
-    Array.from(carousel.children).forEach((child, i) => {
-      const distance = Math.abs(
-        (child as HTMLElement).getBoundingClientRect().left - containerLeft,
-      );
-      if (distance < smallest) {
-        smallest = distance;
-        closest = i;
-      }
-    });
-
-    currentCardIndex.current = closest;
-  };
+  }, [isMobile]);
 
   const justify =
     align === "center"
@@ -392,7 +400,6 @@ export default function HoverImageReveal({
     return (
       <div
         ref={carouselRef}
-        onScroll={handleCarouselScroll}
         className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-5"
         style={{
           WebkitOverflowScrolling: "touch",
