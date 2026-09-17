@@ -187,11 +187,14 @@ export default function HeroSection() {
 
           <div>
             <motion.a
-              href="#contact"
+              href="/media/CV/Anant_Pandey_Resume.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6, ease: EASE }}
               className="group mb-[18px] flex items-center gap-3 text-[13px] font-normal tracking-[-0.1px] text-ink-muted transition-colors duration-200 hover:text-ink"
+              style={{ cursor: "none" }}
             >
               <span className="text-ink-faint transition-colors duration-200 group-hover:text-ink">
                 <ResumeIcon />
