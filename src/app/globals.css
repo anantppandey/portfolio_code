@@ -268,15 +268,26 @@ footer::before {
 }
 
 @media (max-width: 767px) {
-  /* The pie now sits at the top of the section, and its outermost label text
-     reaches the top edge of its own 700px box, so the section keeps enough
-     headroom for the 48px section caption to stay clear of it. The bottom
-     value leaves room for the labels a tapped slice pushes outward. */
+  /* The hero wrapper is 150vh on desktop, where the extra half viewport is the
+     scroll distance the sticky hero scales down over. On mobile that same
+     travel reads as the page not moving, so the wrapper is cut to the one
+     viewport the hero actually occupies. The scale animation has no room left
+     to run here as a result. */
+  .hero-wrapper {
+    height: 100vh !important;
+  }
+
+  /* The curved labels are drawn outside the pie's own 700px box: at rest they
+     sit at radius 365 against the box's 350, and a tapped slice pushes them
+     out to 470. The section clips its overflow, so this padding is what those
+     labels are painted into. Measured against every tapped state at the 0.42
+     mobile scale, the tightest that does not cut them off is 88px top and 53px
+     bottom; these carry a few px over that. Lower values clip the artwork. */
   #specializations {
     min-height: unset !important;
     height: auto !important;
-    padding-top: 128px !important;
-    padding-bottom: 64px !important;
+    padding-top: 92px !important;
+    padding-bottom: 56px !important;
   }
 
   /* The section no longer reserves a viewport, so the wrapper must not
@@ -298,11 +309,12 @@ footer::before {
   #projects {
     min-height: unset !important;
     padding-top: 48px !important;
-    padding-bottom: 48px !important;
+    padding-bottom: 40px !important;
   }
 
   .hover-reveal-wrapper {
-    min-height: auto !important;
+    min-height: unset !important;
+    padding-bottom: 0 !important;
   }
 
   /* The vertical padding of these two sections lives on the inner wrapper

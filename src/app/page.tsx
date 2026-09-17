@@ -27,7 +27,7 @@ export default function Home() {
     <>
       <ScrollDotNav />
       <main>
-        <div ref={heroRef} className="relative z-[1] h-[150vh]">
+        <div ref={heroRef} className="hero-wrapper relative z-[1] h-[150vh]">
           <motion.div
             style={{
               scale: heroScale,
