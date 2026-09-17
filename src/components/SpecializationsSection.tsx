@@ -348,6 +348,15 @@ const KNOW_MORE_R = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
 /** Half the angular span of the Know more arc, comfortably longer than the text. */
 const KNOW_MORE_SWEEP = 44;
 /**
+ * Where the Know more text itself rides. Pulled in off the crescent's midline
+ * so it sits against the outer edge of the Hardware disc, reading as part of
+ * the gap rather than floating in the middle of it. Only the text moves: the
+ * tap stroke stays on the midline, because the band between the disc edge
+ * (108) and this radius is too shallow to hold a target once the pie is
+ * scaled to 0.42 on mobile.
+ */
+const KNOW_MORE_TEXT_R = 118;
+/**
  * Outer radius of the mobile tap target. A slice reads as one shape to a
  * thumb: the donut band, the seam on either side of it, and the curved label
  * band that sits out past the rim. The hit wedge spans all of it, so the tap
@@ -1379,6 +1388,19 @@ export default function SpecializationsSection() {
                   flip ? 0 : 1
                 } ${to.x} ${to.y}`;
 
+                /* Concentric with the tap arc, a step further in. */
+                const textFrom = polar(
+                  KNOW_MORE_TEXT_R,
+                  flip ? angle + KNOW_MORE_SWEEP : angle - KNOW_MORE_SWEEP,
+                );
+                const textTo = polar(
+                  KNOW_MORE_TEXT_R,
+                  flip ? angle - KNOW_MORE_SWEEP : angle + KNOW_MORE_SWEEP,
+                );
+                const textArc = `M ${textFrom.x} ${textFrom.y} A ${KNOW_MORE_TEXT_R} ${KNOW_MORE_TEXT_R} 0 0 ${
+                  flip ? 0 : 1
+                } ${textTo.x} ${textTo.y}`;
+
                 return (
                   <motion.g
                     key={`know-more-${segment.id}`}
@@ -1394,6 +1416,11 @@ export default function SpecializationsSection() {
                       e.stopPropagation();
                       setSelectedProject(segment.primaryProject);
                     }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setSelectedProject(segment.primaryProject);
+                    }}
                   >
                     <path
                       id={`know-more-arc-${segment.id}`}
@@ -1401,7 +1428,13 @@ export default function SpecializationsSection() {
                       fill="none"
                       stroke="none"
                     />
-                    {/* A thick transparent stroke on the same arc carries the
+                    <path
+                      id={`know-more-text-arc-${segment.id}`}
+                      d={textArc}
+                      fill="none"
+                      stroke="none"
+                    />
+                    {/* A thick transparent stroke on the midline arc carries the
                         tap. The glyphs alone are a few px tall once the pie is
                         scaled to 0.42 on mobile, which is no tap target. */}
                     <path
@@ -1411,22 +1444,29 @@ export default function SpecializationsSection() {
                       strokeWidth={46}
                       style={{ pointerEvents: "stroke", cursor: "none" }}
                     />
+                    {/* Sized off the description line and coloured off the
+                        tools line, so the action reads as part of the same
+                        stack of labels rather than a separate voice. */}
                     <text
                       fill="#0099ff"
-                      fontSize={16.5}
+                      fontSize={13}
                       fontWeight={500}
                       fontFamily="Inter"
-                      letterSpacing="0.3px"
+                      letterSpacing="0.14em"
                       textAnchor="middle"
                       dominantBaseline="middle"
                       style={{
-                        pointerEvents: "none",
+                        cursor: "none",
+                        pointerEvents: "all",
+                        userSelect: "none",
+                        textTransform: "uppercase",
+                        opacity: 0.9,
                         textShadow:
                           "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)",
                       }}
                     >
                       <textPath
-                        href={`#know-more-arc-${segment.id}`}
+                        href={`#know-more-text-arc-${segment.id}`}
                         startOffset="50%"
                       >
                         Know more →
