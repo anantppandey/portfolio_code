@@ -46,9 +46,56 @@ body {
 }
 
 body {
+  background-color: #090909;
+  min-height: 100%;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Every section is fully transparent, so the fixed particle field at z-index 0
+   is not just a strip behind the first viewport: it covers the viewport at
+   every scroll position and shows through every section the user scrolls
+   past. Body #090909 is the fallback base colour. The !important is what lets
+   the rule win over the inline background on #projects; everything else here
+   only has to beat the `bg-canvas` utility. */
+section,
+#hero,
+#specializations,
+#projects,
+#about,
+#contact,
+footer {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* The particle field sits at z-index 0, so every section has to outrank it.
+   Asserted here so the invariant lives in one place instead of depending on
+   the utilities each section happens to carry. */
+section,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* The browser default light scrollbar reads as a misplaced stripe against the
+   dark canvas. */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e1e1e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
 }
 
 /* Mobile section rhythm. Every section below is either sized in viewports or
@@ -167,15 +214,26 @@ body {
 }
 
 @media (max-width: 767px) {
-  /* The pie now sits at the top of the section, and its outermost label text
-     reaches the top edge of its own 700px box, so the section keeps enough
-     headroom for the 48px section caption to stay clear of it. The bottom
-     value leaves room for the labels a tapped slice pushes outward. */
+  /* The hero wrapper is 150vh on desktop, where the extra half viewport is the
+     scroll distance the sticky hero scales down over. On mobile that same
+     travel reads as the page not moving, so the wrapper is cut to the one
+     viewport the hero actually occupies. The scale animation has no room left
+     to run here as a result. */
+  .hero-wrapper {
+    height: 100vh !important;
+  }
+
+  /* The curved labels are drawn outside the pie's own 700px box: at rest they
+     sit at radius 365 against the box's 350, and a tapped slice pushes them
+     out to 470. The section clips its overflow, so this padding is what those
+     labels are painted into. Measured against every tapped state at the 0.42
+     mobile scale, the tightest that does not cut them off is 88px top and 53px
+     bottom; these carry a few px over that. Lower values clip the artwork. */
   #specializations {
     min-height: unset !important;
     height: auto !important;
-    padding-top: 128px !important;
-    padding-bottom: 64px !important;
+    padding-top: 92px !important;
+    padding-bottom: 56px !important;
   }
 
   /* The section no longer reserves a viewport, so the wrapper must not
@@ -197,11 +255,12 @@ body {
   #projects {
     min-height: unset !important;
     padding-top: 48px !important;
-    padding-bottom: 48px !important;
+    padding-bottom: 40px !important;
   }
 
   .hover-reveal-wrapper {
-    min-height: auto !important;
+    min-height: unset !important;
+    padding-bottom: 0 !important;
   }
 
   /* The vertical padding of these two sections lives on the inner wrapper
@@ -217,6 +276,13 @@ body {
   #about {
     padding-top: 48px !important;
     padding-bottom: 48px !important;
+  }
+
+  /* The bio and the skill cards sit side by side on desktop, where a 64px
+     gutter reads as a column break. Stacked on mobile that same value becomes
+     64px of dead vertical space between the two blocks. */
+  .about-grid {
+    gap: 32px !important;
   }
 
   .skill-cards-container {

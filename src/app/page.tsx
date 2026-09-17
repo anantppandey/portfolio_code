@@ -27,7 +27,7 @@ export default function Home() {
     <>
       <ScrollDotNav />
       <main>
-        <div ref={heroRef} className="relative z-[1] h-[150vh]">
+        <div ref={heroRef} className="hero-wrapper relative z-[1] h-[150vh]">
           <motion.div
             style={{
               scale: heroScale,
@@ -41,10 +41,12 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Exactly one viewport tall. At 200vh the section inside was pinned
-            for the extra 100vh, so the page kept scrolling while nothing on
-            screen moved, which read as the scroll being stuck. */}
-        <div className="specializations-wrapper relative z-[2] h-[100vh]">
+        {/* Height comes from the section itself, which is h-screen on desktop
+            and auto on mobile. The wrapper used to restate 100vh, which pinned
+            it to a viewport even where the section had shrunk to its content.
+            (At 200vh the section was pinned for the extra 100vh, so the page
+            kept scrolling while nothing on screen moved.) */}
+        <div className="specializations-wrapper relative z-[2] h-auto">
           <SpecializationsSection />
         </div>
 

@@ -90,7 +90,7 @@ export default function HeroSection() {
       <HeroBackground />
       <GridOverlay />
 
-      <div className="relative z-[2] px-6 pb-[60px] pt-[calc(28vh+20px)] md:pl-[100px] md:pr-[160px]">
+      <div className="relative z-[2] px-6 pb-10 pt-[calc(28vh+20px)] md:pl-[100px] md:pr-[160px]">
         {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
