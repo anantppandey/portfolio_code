@@ -348,14 +348,19 @@ const KNOW_MORE_R = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
 /** Half the angular span of the Know more arc, comfortably longer than the text. */
 const KNOW_MORE_SWEEP = 44;
 /**
- * Where the Know more text itself rides. Pulled in off the crescent's midline
- * so it sits against the outer edge of the Hardware disc, reading as part of
- * the gap rather than floating in the middle of it. Only the text moves: the
- * tap stroke stays on the midline, because the band between the disc edge
- * (108) and this radius is too shallow to hold a target once the pie is
- * scaled to 0.42 on mobile.
+ * Where the Know more text rides, and how far it spans. Pushed out to the
+ * slice's inner boundary rather than left down near the Hardware disc, so the
+ * label reads as part of the slice it belongs to.
+ *
+ * That boundary is not concentric with the pie. The slice is translated along
+ * its own mid-angle, so its inner edge sits at 165 on the midline but falls to
+ * about 157 by the ends of a 25 degree sweep. The radius is held just inside
+ * that and the span is kept close to the length of the label, so the text
+ * tracks the edge instead of crossing onto the artwork. It still lands inside
+ * the tap band below, which is what keeps the whole label tappable.
  */
-const KNOW_MORE_TEXT_R = 118;
+const KNOW_MORE_TEXT_R = 148;
+const KNOW_MORE_TEXT_SWEEP = 25;
 /**
  * Outer radius of the mobile tap target. A slice reads as one shape to a
  * thumb: the donut band, the seam on either side of it, and the curved label
@@ -1388,14 +1393,24 @@ export default function SpecializationsSection() {
                   flip ? 0 : 1
                 } ${to.x} ${to.y}`;
 
-                /* Concentric with the tap arc, a step further in. */
+                /*
+                 * The text rides a concentric arc of its own, on its own
+                 * shorter span. Running it out to the tap arc's sweep would
+                 * carry its ends past the slice's inner edge, which curves in
+                 * as the slice slides off centre, and the label would cross
+                 * onto the artwork at both ends.
+                 */
                 const textFrom = polar(
                   KNOW_MORE_TEXT_R,
-                  flip ? angle + KNOW_MORE_SWEEP : angle - KNOW_MORE_SWEEP,
+                  flip
+                    ? angle + KNOW_MORE_TEXT_SWEEP
+                    : angle - KNOW_MORE_TEXT_SWEEP,
                 );
                 const textTo = polar(
                   KNOW_MORE_TEXT_R,
-                  flip ? angle - KNOW_MORE_SWEEP : angle + KNOW_MORE_SWEEP,
+                  flip
+                    ? angle - KNOW_MORE_TEXT_SWEEP
+                    : angle + KNOW_MORE_TEXT_SWEEP,
                 );
                 const textArc = `M ${textFrom.x} ${textFrom.y} A ${KNOW_MORE_TEXT_R} ${KNOW_MORE_TEXT_R} 0 0 ${
                   flip ? 0 : 1
