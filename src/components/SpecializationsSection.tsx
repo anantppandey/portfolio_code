@@ -1176,9 +1176,11 @@ export default function SpecializationsSection() {
                 if (activeSegment !== segment.id) return null;
 
                 const midDeg = midAngle(segment);
-                const pillR = HOVER_OUTER_R + HOVER_SHIFT + 28;
-                const pillX = CX + pillR * Math.cos(toRad(midDeg));
-                const pillY = CY + pillR * Math.sin(toRad(midDeg));
+                // Midpoint of the donut band. A tapped slice slides outward by
+                // HOVER_SHIFT, which opens a gap between the Hardware disc and
+                // the slice's inner edge, and this is where the pill sits.
+                const pillX = CX + LABEL_R * Math.cos(toRad(midDeg));
+                const pillY = CY + LABEL_R * Math.sin(toRad(midDeg));
 
                 return (
                   <motion.div
@@ -1255,7 +1257,11 @@ export default function SpecializationsSection() {
                 style={{
                   position: "absolute",
                   left: CX,
-                  top: CY - 130,
+                  // Just inside the bottom edge of the Hardware disc, whose
+                  // radius is HARDWARE_R (108).
+                  top: CY + 85,
+                  // The CSS `translate` property rather than `transform`, which
+                  // the motion animation above writes to.
                   translate: "-50% -50%",
                   pointerEvents: "all",
                   cursor: "none",
