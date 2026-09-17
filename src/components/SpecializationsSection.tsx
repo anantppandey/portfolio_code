@@ -1246,14 +1246,17 @@ export default function SpecializationsSection() {
 
                 const midDeg = midAngle(segment);
                 /*
-                 * 62% of the way out through the donut band, which a tapped
-                 * slice empties by sliding outward along this same angle.
-                 * OUTER_R (240) rather than HOVER_OUTER_R (340) is the band's
-                 * resting outer edge, and gives the intended ~191px.
+                 * The optical centre of the slice the label belongs to.
+                 * MEDIA_MID_R is the midline of the expanded band, and
+                 * HOVER_SHIFT carries it along the same outward slide the slice
+                 * itself makes, so the label sits centred in the shape rather
+                 * than crowding the Hardware disc at the inner edge. It also
+                 * lands where the slice vignette is deep enough to hold the
+                 * text, and well inside the arc labels out at 420 and beyond.
                  */
-                const gapR = INNER_R + (OUTER_R - INNER_R) * 0.62;
-                const pillX = CX + gapR * Math.cos(toRad(midDeg));
-                const pillY = CY + gapR * Math.sin(toRad(midDeg));
+                const pillR = MEDIA_MID_R + HOVER_SHIFT;
+                const pillX = CX + pillR * Math.cos(toRad(midDeg));
+                const pillY = CY + pillR * Math.sin(toRad(midDeg));
 
                 return (
                   <motion.div
