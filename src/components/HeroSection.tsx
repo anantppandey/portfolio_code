@@ -190,7 +190,6 @@ export default function HeroSection() {
               href="/media/CV/Anant_Pandey_Resume.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              download="Anant_Pandey_Resume.pdf"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6, ease: EASE }}
