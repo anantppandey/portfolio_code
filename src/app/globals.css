@@ -17,18 +17,6 @@
   --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Tailwind v4 only emits theme variables for the utilities a page actually
-   uses, and the dotted glow canvas reads its dot and glow colors straight out
-   of these names, so they are declared here to guarantee they resolve. */
-:root {
-  --color-neutral-500: #737373;
-  --color-neutral-600: #525252;
-  --color-neutral-700: #404040;
-  --color-neutral-800: #262626;
-  --color-sky-600: #0284c7;
-  --color-sky-700: #0369a1;
-}
-
 /* No `scroll-behavior: smooth` here on purpose. Lenis animates the scroll
    position itself, and native smooth scrolling fights it for control, which
    showed up as stutter and jumps. Lenis owns anchor jumps too, so the
@@ -65,14 +53,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Every section is fully transparent, so the dotted glow is not just a strip
-   behind the first viewport: the canvas is fixed at z-index 0, which covers
-   the viewport at every scroll position, and with the opaque section washes
-   gone it now shows through every section the user scrolls past. Body #090909
-   is the fallback base colour, and the wash that keeps content readable lives
-   on the section ::before rule instead. The !important is what lets the rule
-   win over the inline background on #projects; everything else here only has
-   to beat the `bg-canvas` utility. */
+/* Every section is fully transparent, so the fixed particle field at z-index 0
+   is not just a strip behind the first viewport: it covers the viewport at
+   every scroll position and shows through every section the user scrolls
+   past. Body #090909 is the fallback base colour. The !important is what lets
+   the rule win over the inline background on #projects; everything else here
+   only has to beat the `bg-canvas` utility. */
 section,
 #hero,
 #specializations,
@@ -84,47 +70,17 @@ footer {
   background-image: none !important;
 }
 
-/* The hero reads the dotted canvas at half the strength of every other
-   section. Sections get there through the 0.55 wash below, which leaves 45% of
-   full brightness, and the hero needs one extra layer of #090909 at 0.5 to
-   halve what is left (0.5 x 0.45 = 22.5%). That layer sits on the 150vh
-   wrapper rather than on the section itself: the wrapper is the backdrop for
-   the whole hero scroll region, the section keeps the same wash as everything
-   else, and a second 0.5 on the section would compound the two down to 11%, a
-   quarter rather than a half. */
-main > div:has(#hero) {
-  background-color: rgba(9, 9, 9, 0.5) !important;
-  background-image: none !important;
-}
-
-/* The canvas sits at z-index 0, so every section has to outrank it, and each
-   one also has to be positioned to contain its own overlay pseudo element.
-   The hero and specializations wrappers already carry z-[1] and z-[2]
-   utilities; these rules hold the invariant in one place. */
+/* The particle field sits at z-index 0, so every section has to outrank it.
+   Asserted here so the invariant lives in one place instead of depending on
+   the utilities each section happens to carry. */
 section,
 footer {
   position: relative;
   z-index: 1;
 }
 
-/* Readability wash. It sits at z-index -1 inside each section's own stacking
-   context, so it covers the glow enough to keep text crisp at 45% transmission
-   while still reading as texture. Negative keeps it above the canvas but
-   underneath every child, in flow or positioned, so content never needs to be
-   lifted over it and the z-index utilities inside the sections keep working.
-   Tune the alpha to taste: 0.4 shows more texture, 0.65 more readability. */
-section::before,
-footer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(9, 9, 9, 0.55);
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* The sections are transparent now, so the browser default light scrollbar
-   reads as a misplaced stripe against the canvas. */
+/* The browser default light scrollbar reads as a misplaced stripe against the
+   dark canvas. */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -140,16 +96,6 @@ footer::before {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #2a2a2a;
-}
-
-/* The dotted glow animates from a requestAnimationFrame loop rather than from
-   a CSS animation, so `animation: none` would not stop it. Hidden outright
-   instead, the same way the previous decorative canvas was. */
-@media (prefers-reduced-motion: reduce) {
-  .dotted-glow-background,
-  [class*="dotted-glow"] {
-    display: none !important;
-  }
 }
 
 /* Mobile section rhythm. Every section below is either sized in viewports or
