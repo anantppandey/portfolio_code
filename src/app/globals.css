@@ -224,15 +224,23 @@ footer {
   }
 
   /* The curved labels are drawn outside the pie's own 700px box: at rest they
-     sit at radius 365 against the box's 350, and a tapped slice pushes them
-     out to 470. The section clips its overflow, so this padding is what those
-     labels are painted into. Measured against every tapped state at the 0.42
-     mobile scale, the tightest that does not cut them off is 88px top and 53px
-     bottom; these carry a few px over that. Lower values clip the artwork. */
+     sit at radius 365 against the box's 350, and a tapped slice pushes its
+     title out to 420. Two things constrain the padding, and the top value is
+     set by the second, which is the tighter of the two:
+
+       1. The section clips its overflow, so the padding is what those labels
+          are painted into. Measured across every tapped state at the 0.42
+          mobile scale, that needs 88px top and 53px bottom.
+       2. The section caption is absolutely positioned at top 48px, so it does
+          NOT move with this padding while the pie does. Clearing it is what
+          the top value is really for: at 92px the tapped RL label overlapped
+          the caption by 24px. The labels shift 1:1 with this padding, and
+          136px puts 20px of air under the caption with a slice tapped, 32px
+          at rest. Lower values merge the caption into the pie. */
   #specializations {
     min-height: unset !important;
     height: auto !important;
-    padding-top: 92px !important;
+    padding-top: 136px !important;
     padding-bottom: 56px !important;
   }
 

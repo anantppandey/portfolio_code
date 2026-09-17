@@ -339,6 +339,14 @@ const INNER_R = 110;
 const HARDWARE_R = 108;
 const HARDWARE_HOVER_R = 150;
 const LABEL_R = 175;
+/**
+ * Midline of the crescent a tapped slice opens up. The slice slides outward by
+ * HOVER_SHIFT, leaving the band between the Hardware disc edge and the slice's
+ * new inner edge empty, and the Know more label curves along it.
+ */
+const KNOW_MORE_R = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
+/** Half the angular span of the Know more arc, comfortably longer than the text. */
+const KNOW_MORE_SWEEP = 44;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -533,50 +541,55 @@ function SegmentMedia({
 
 /**
  * Call to action shown over an expanded slice, and over the Hardware disc, once
- * a touch device has tapped one. Both sites render the same pill, so the styling
- * lives here rather than being repeated at each one. The hover colours only
- * resolve on a pointer device, which the pills do not currently reach, and are
- * kept so the pill stays complete if it is ever shown on desktop.
+ * a touch device has tapped one. Both sites render the same label, so the
+ * styling lives here rather than being repeated at each one.
+ *
+ * Bare text rather than a pill. Two things the pill's chrome was quietly doing
+ * are kept: the padding stays, now invisible, because it is the touch target,
+ * and the drop shadow becomes a text shadow, because the label sits directly on
+ * the slice photography and several of those frames are bright enough to
+ * swallow unshadowed text. The hover colour only resolves on a pointer device,
+ * which this does not currently reach, and is kept so it stays complete if it
+ * is ever shown on desktop.
  */
-function KnowMorePill() {
+function KnowMoreLink() {
   return (
     <div
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#0099ff";
         e.currentTarget.style.color = "#ffffff";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#262626";
-        e.currentTarget.style.color = "#cccccc";
+        e.currentTarget.style.color = "#0099ff";
       }}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: "6px",
-        background: "#141414",
-        border: "0.5px solid #262626",
-        borderRadius: "100px",
+        gap: "8px",
         padding: "8px 16px",
-        fontSize: "11px",
+        fontSize: "16.5px",
         fontWeight: 500,
-        color: "#cccccc",
+        color: "#0099ff",
         fontFamily: "Inter",
         letterSpacing: "0.02em",
         whiteSpace: "nowrap",
         WebkitTapHighlightColor: "transparent",
-        transition: "border-color 0.2s, color 0.2s",
-        boxShadow: "0 0 12px rgba(0,0,0,0.4)",
+        transition: "color 0.2s",
+        textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)",
       }}
     >
       <svg
-        width="10"
-        height="10"
+        width="15"
+        height="15"
         viewBox="0 0 24 24"
         fill="none"
         stroke="#0099ff"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        style={{
+          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.9))",
+          flexShrink: 0,
+        }}
       >
         <path d="M5 12h14M12 5l7 7-7 7" />
       </svg>
@@ -617,6 +630,21 @@ export default function SpecializationsSection() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  /*
+   * Open one slice on arrival, mobile only. Nothing about the pie says "tap
+   * me" on a touch device, where there is no hover to discover it with, so the
+   * first slice starts expanded and carries its Know more label as a worked
+   * example. It stays open until the visitor taps something, after which the
+   * normal toggle takes over. The ref keeps it to once per mount, so it does
+   * not reopen if the viewport crosses the breakpoint later.
+   */
+  const introOpened = useRef(false);
+  useEffect(() => {
+    if (!isMobile || introOpened.current) return;
+    introOpened.current = true;
+    setTappedSegment(segments[0].id);
+  }, [isMobile]);
 
   useEffect(() => {
     const pick = () => {
@@ -1221,6 +1249,91 @@ export default function SpecializationsSection() {
               </motion.g>
             );
           })}
+
+          {/* Mobile tap affordance, curved along the crescent the way the slice
+              titles follow their own arcs. It lives in the SVG rather than the
+              HTML overlay below because only SVG text can take a real curve.
+              The clip problem that pushed the Hardware pill out of the artwork
+              does not apply here: that was a foreignObject inheriting a slice
+              clipPath, and this is plain SVG text at the root. */}
+          <AnimatePresence>
+            {isMobile &&
+              segments.map((segment) => {
+                if (activeSegment !== segment.id) return null;
+
+                const angle = midAngle(segment);
+                // The same rule the slice labels use: a clockwise arc carries
+                // text upside down across the lower half of the circle.
+                const flip = angle > 0 && angle < 180;
+                const from = polar(
+                  KNOW_MORE_R,
+                  flip ? angle + KNOW_MORE_SWEEP : angle - KNOW_MORE_SWEEP,
+                );
+                const to = polar(
+                  KNOW_MORE_R,
+                  flip ? angle - KNOW_MORE_SWEEP : angle + KNOW_MORE_SWEEP,
+                );
+                const arc = `M ${from.x} ${from.y} A ${KNOW_MORE_R} ${KNOW_MORE_R} 0 0 ${
+                  flip ? 0 : 1
+                } ${to.x} ${to.y}`;
+
+                return (
+                  <motion.g
+                    key={`know-more-${segment.id}`}
+                    initial={{ opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.88 }}
+                    transition={{ duration: 0.2, ease: EASE }}
+                    style={{
+                      transformBox: "view-box",
+                      transformOrigin: "350px 350px",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProject(segment.primaryProject);
+                    }}
+                  >
+                    <path
+                      id={`know-more-arc-${segment.id}`}
+                      d={arc}
+                      fill="none"
+                      stroke="none"
+                    />
+                    {/* A thick transparent stroke on the same arc carries the
+                        tap. The glyphs alone are a few px tall once the pie is
+                        scaled to 0.42 on mobile, which is no tap target. */}
+                    <path
+                      d={arc}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={46}
+                      style={{ pointerEvents: "stroke", cursor: "none" }}
+                    />
+                    <text
+                      fill="#0099ff"
+                      fontSize={16.5}
+                      fontWeight={500}
+                      fontFamily="Inter"
+                      letterSpacing="0.3px"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{
+                        pointerEvents: "none",
+                        textShadow:
+                          "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)",
+                      }}
+                    >
+                      <textPath
+                        href={`#know-more-arc-${segment.id}`}
+                        startOffset="50%"
+                      >
+                        Know more →
+                      </textPath>
+                    </text>
+                  </motion.g>
+                );
+              })}
+          </AnimatePresence>
         </svg>
 
         {/* Pills sit outside the SVG on purpose: every slice shape is a
@@ -1234,51 +1347,9 @@ export default function SpecializationsSection() {
             pointerEvents: "none",
           }}
         >
-          <AnimatePresence>
-            {isMobile &&
-              segments.map((segment) => {
-                if (activeSegment !== segment.id) return null;
-
-                const midDeg = midAngle(segment);
-                /*
-                 * 62% of the way out through the donut band, which a tapped
-                 * slice empties by sliding outward along this same angle.
-                 * OUTER_R (240) rather than HOVER_OUTER_R (340) is the band's
-                 * resting outer edge, and gives the intended ~191px.
-                 */
-                const gapR = INNER_R + (OUTER_R - INNER_R) * 0.62;
-                const pillX = CX + gapR * Math.cos(toRad(midDeg));
-                const pillY = CY + gapR * Math.sin(toRad(midDeg));
-
-                return (
-                  <motion.div
-                    key={segment.id}
-                    initial={{ opacity: 0, scale: 0.88, y: 4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.88, y: 4 }}
-                    transition={{ duration: 0.2, ease: EASE }}
-                    style={{
-                      position: "absolute",
-                      left: pillX,
-                      top: pillY,
-                      // Centred with `translate` rather than `transform`,
-                      // which the animation above writes to.
-                      translate: "-50% -50%",
-                      pointerEvents: "all",
-                      cursor: "none",
-                      zIndex: 20,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedProject(segment.primaryProject);
-                    }}
-                  >
-                    <KnowMorePill />
-                  </motion.div>
-                );
-              })}
-          </AnimatePresence>
-
+          {/* The segment label now curves inside the SVG above. Only the
+              Hardware one stays here: it sits flat in the middle of the disc,
+              where there is no arc to follow. */}
           <AnimatePresence>
             {isMobile && activeSegment === centerData.id && (
               <motion.div
@@ -1305,7 +1376,7 @@ export default function SpecializationsSection() {
                   setSelectedProject(centerData.primaryProject);
                 }}
               >
-                <KnowMorePill />
+                <KnowMoreLink />
               </motion.div>
             )}
           </AnimatePresence>
