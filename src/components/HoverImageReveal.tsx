@@ -245,16 +245,25 @@ export default function HoverImageReveal({
     setActiveCard(Math.max(0, Math.min(i, list.length - 1)));
   };
 
+  /*
+   * `scrollIntoView` on the card itself rather than arithmetic on a stride:
+   * it asks the browser for the card's own offset, so it cannot drift out of
+   * step with the layout the way a computed position can.
+   */
   const scrollToCard = (i: number) => {
-    const carousel = carouselRef.current;
-    const stride = cardStride();
-    if (!carousel || stride <= 0) return;
-    carousel.scrollTo({ left: i * stride, behavior: "smooth" });
+    const card = carouselRef.current?.children[i] as HTMLElement | undefined;
+    card?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "start",
+    });
   };
 
   if (isMobile) {
     return (
-      <>
+      /* Caps the strip's overflow here so it cannot reach the page and give
+         the whole document a sideways scroll. */
+      <div style={{ width: "100%", overflowX: "hidden" }}>
         <div
           ref={carouselRef}
           onScroll={handleCarouselScroll}
@@ -301,9 +310,12 @@ export default function HoverImageReveal({
                 scrollSnapAlign: "start",
                 scrollSnapStop: "always",
                 flexShrink: 0,
-                width: "80vw",
-                minWidth: "260px",
-                maxWidth: "320px",
+                /* 75vw is 281px against a 295px scrollport, so a snapped card
+                   sits fully inside it. At 80vw it was 300px and its right
+                   edge fell 5px outside, where it could never be seen. */
+                width: "75vw",
+                minWidth: "240px",
+                maxWidth: "300px",
                 height: "420px",
                 borderRadius: "14px",
                 background: "#141414",
@@ -423,7 +435,7 @@ export default function HoverImageReveal({
         >
           Swipe to explore
         </p>
-      </>
+      </div>
     );
   }
 
