@@ -347,6 +347,28 @@ const LABEL_R = 175;
 const KNOW_MORE_R = (HARDWARE_R + INNER_R + HOVER_SHIFT) / 2;
 /** Half the angular span of the Know more arc, comfortably longer than the text. */
 const KNOW_MORE_SWEEP = 44;
+/**
+ * Where the Know more text rides, and how far it spans. Pushed out to the
+ * slice's inner boundary rather than left down near the Hardware disc, so the
+ * label reads as part of the slice it belongs to.
+ *
+ * That boundary is not concentric with the pie. The slice is translated along
+ * its own mid-angle, so its inner edge sits at 165 on the midline but falls to
+ * about 157 by the ends of a 25 degree sweep. The radius is held just inside
+ * that and the span is kept close to the length of the label, so the text
+ * tracks the edge instead of crossing onto the artwork. It still lands inside
+ * the tap band below, which is what keeps the whole label tappable.
+ */
+const KNOW_MORE_TEXT_R = 148;
+const KNOW_MORE_TEXT_SWEEP = 25;
+/**
+ * Outer radius of the mobile tap target. A slice reads as one shape to a
+ * thumb: the donut band, the seam on either side of it, and the curved label
+ * band that sits out past the rim. The hit wedge spans all of it, so the tap
+ * lands on the slice whether the finger reads the artwork or the label above
+ * it. Only used below 768, where hover cannot carry the interaction.
+ */
+const HIT_OUTER_R = 490;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -458,6 +480,14 @@ function SegmentMedia({
     transformOrigin: origin,
     transform: `translate(${translateX}%, ${translateY}%) scale(${scale})`,
     filter: config.filter,
+    /*
+     * These layers are the full 700px pie and sit directly over the slice
+     * path, so anything but a pass-through here swallows every tap on the
+     * slice. The foreignObject above already asks for this, but the img and
+     * the video inherit it across the foreignObject boundary only in some
+     * engines, so it is set on the layers themselves too.
+     */
+    pointerEvents: "none",
   }
 
   return (
@@ -469,6 +499,8 @@ function SegmentMedia({
         overflow: "hidden",
         // Shows through if an asset fails, so a slice is never empty.
         background: "rgba(0,10,25,0.85)",
+        // Same reason as the layers below: the slice path owns the tap.
+        pointerEvents: "none",
       }}
     >
       {/* Layer 1: thumbnail, dimmed at rest and faded out under the motion */}
@@ -623,6 +655,51 @@ export default function SpecializationsSection() {
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   /** Hover drives the expand on desktop, tap drives it on mobile. */
   const activeSegment = isMobile ? tappedSegment : hoveredSegment;
+
+  /*
+   * One place for the mobile toggle, called by the slice paths and by the
+   * Hardware disc. The functional update reads the live value rather than the
+   * one captured when the handler was created. Desktop keeps its own
+   * handlers: hover drives the expand there and a click opens the project.
+   */
+  const handleSegmentTap = (segmentId: string) => {
+    if (!isMobile) return;
+    setTappedSegment((prev) => (prev === segmentId ? null : segmentId));
+  };
+
+  /**
+   * Touch runs the tap itself and stops the event there. A touch tap also
+   * produces a compatibility click, and if that click reached the same
+   * handler the toggle would run twice and land back where it started, which
+   * reads as a tap that did nothing. Touches are stamped so the click that
+   * belongs to the same gesture can be recognised and dropped. The stamp is
+   * the native event's own timeStamp rather than Date.now, which both keeps
+   * the two on one clock and stays out of render.
+   */
+  const lastTouchTap = useRef(0);
+
+  const handleSegmentTouch = (
+    segmentId: string,
+    event: React.TouchEvent<SVGElement>,
+  ) => {
+    event.preventDefault();
+    lastTouchTap.current = event.timeStamp;
+    handleSegmentTap(segmentId);
+  };
+
+  /** Desktop opens the project; a touch device toggles the slice open instead. */
+  const handleSegmentClick = (
+    segmentId: string,
+    project: SegmentProject,
+    event: React.MouseEvent<SVGElement>,
+  ) => {
+    if (!isMobile) {
+      setSelectedProject(project);
+      return;
+    }
+    if (event.timeStamp - lastTouchTap.current < 600) return;
+    handleSegmentTap(segmentId);
+  };
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -862,7 +939,47 @@ export default function SpecializationsSection() {
                 transformBox: "view-box",
                 transformOrigin: "350px 350px",
               }}
+              onMouseEnter={
+                isMobile ? undefined : () => setHoveredSegment(segment.id)
+              }
+              onMouseLeave={
+                isMobile ? undefined : () => setHoveredSegment(null)
+              }
+              onClick={(event) =>
+                handleSegmentClick(segment.id, segment.primaryProject, event)
+              }
+              onTouchEnd={
+                isMobile
+                  ? (event) => handleSegmentTouch(segment.id, event)
+                  : undefined
+              }
             >
+              {/*
+                Mobile tap target. The whole geometric wedge rather than the
+                donut band alone, so a finger that lands on the seam, on the
+                label band, or anywhere between them still hits this slice.
+                Transparent rather than none: an unpainted fill has no
+                interior to hit-test, so it has to stay a real paint.
+              */}
+              {isMobile && (
+                <path
+                  d={describeArc(
+                    HIT_OUTER_R,
+                    INNER_R,
+                    segment.startAngle,
+                    segment.endAngle,
+                    0,
+                  )}
+                  fill="transparent"
+                  style={{ cursor: "none", pointerEvents: "all" }}
+                />
+              )}
+              {/*
+                The path carries no handlers of its own. It fills the core of
+                the wedge above, so its events bubble to the group, which owns
+                the single set of handlers. Duplicating them here would run
+                every tap twice and cancel the toggle out.
+              */}
               <motion.path
                 d={describeArc(
                   OUTER_R,
@@ -912,24 +1029,11 @@ export default function SpecializationsSection() {
                 filter={
                   activeSegment === segment.id ? "url(#segment-glow)" : undefined
                 }
-                onMouseEnter={
-                  isMobile ? undefined : () => setHoveredSegment(segment.id)
-                }
-                onMouseLeave={
-                  isMobile ? undefined : () => setHoveredSegment(null)
-                }
-                onClick={
-                  isMobile
-                    ? () =>
-                        setTappedSegment(
-                          tappedSegment === segment.id ? null : segment.id,
-                        )
-                    : () => setSelectedProject(segment.primaryProject)
-                }
                 style={{ cursor: "none", pointerEvents: "all" }}
               />
 
-              {/* Media inside the slice. Hits pass through to the path. */}
+              {/* Media inside the slice. Every layer in it passes the pointer
+                  straight through to the group, which owns the tap. */}
               <foreignObject
                 x={0}
                 y={0}
@@ -966,6 +1070,9 @@ export default function SpecializationsSection() {
                 y2={b.y}
                 stroke="#090909"
                 strokeWidth={2}
+                // The seams sit on top of the slices, so they would otherwise
+                // take the tap for themselves along a 2px band.
+                style={{ pointerEvents: "none" }}
               />
             );
           })}
@@ -1071,17 +1178,26 @@ export default function SpecializationsSection() {
                 Hardware
               </text>
             </motion.g>
-            <motion.circle
+            {/*
+              A plain circle, not a motion one. This is the Hardware hit area,
+              and when framer owned its `r` through `animate` the attribute
+              read "undefined" until an animation frame wrote a real value,
+              which left the element 0 by 0 with no hit area at all. That is
+              the source of the repeated `<circle> attribute r` console error,
+              and it is why tapping the middle of the disc did nothing.
+
+              The radius now comes straight from state, so it is always a
+              valid number. It steps rather than eases, which an invisible
+              target does not care about, and it tracks the disc: 108 at rest,
+              so it does not reach over the slices that start at 110, and the
+              expanded 150 while the disc is open so the whole of it answers.
+            */}
+            <circle
               cx={CX}
               cy={CY}
-              r={HARDWARE_R}
-              animate={{
-                r:
-                  activeSegment === centerData.id
-                    ? HARDWARE_HOVER_R
-                    : HARDWARE_R,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              r={
+                activeSegment === centerData.id ? HARDWARE_HOVER_R : HARDWARE_R
+              }
               fill="transparent"
               onMouseEnter={
                 isMobile ? undefined : () => setHoveredSegment(centerData.id)
@@ -1089,13 +1205,13 @@ export default function SpecializationsSection() {
               onMouseLeave={
                 isMobile ? undefined : () => setHoveredSegment(null)
               }
-              onClick={
+              onClick={(event) =>
+                handleSegmentClick(centerData.id, centerData.primaryProject, event)
+              }
+              onTouchEnd={
                 isMobile
-                  ? () =>
-                      setTappedSegment(
-                        tappedSegment === centerData.id ? null : centerData.id,
-                      )
-                  : () => setSelectedProject(centerData.primaryProject)
+                  ? (event) => handleSegmentTouch(centerData.id, event)
+                  : undefined
               }
               style={{ cursor: "none", pointerEvents: "all" }}
             />
@@ -1277,6 +1393,29 @@ export default function SpecializationsSection() {
                   flip ? 0 : 1
                 } ${to.x} ${to.y}`;
 
+                /*
+                 * The text rides a concentric arc of its own, on its own
+                 * shorter span. Running it out to the tap arc's sweep would
+                 * carry its ends past the slice's inner edge, which curves in
+                 * as the slice slides off centre, and the label would cross
+                 * onto the artwork at both ends.
+                 */
+                const textFrom = polar(
+                  KNOW_MORE_TEXT_R,
+                  flip
+                    ? angle + KNOW_MORE_TEXT_SWEEP
+                    : angle - KNOW_MORE_TEXT_SWEEP,
+                );
+                const textTo = polar(
+                  KNOW_MORE_TEXT_R,
+                  flip
+                    ? angle - KNOW_MORE_TEXT_SWEEP
+                    : angle + KNOW_MORE_TEXT_SWEEP,
+                );
+                const textArc = `M ${textFrom.x} ${textFrom.y} A ${KNOW_MORE_TEXT_R} ${KNOW_MORE_TEXT_R} 0 0 ${
+                  flip ? 0 : 1
+                } ${textTo.x} ${textTo.y}`;
+
                 return (
                   <motion.g
                     key={`know-more-${segment.id}`}
@@ -1292,6 +1431,11 @@ export default function SpecializationsSection() {
                       e.stopPropagation();
                       setSelectedProject(segment.primaryProject);
                     }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setSelectedProject(segment.primaryProject);
+                    }}
                   >
                     <path
                       id={`know-more-arc-${segment.id}`}
@@ -1299,7 +1443,13 @@ export default function SpecializationsSection() {
                       fill="none"
                       stroke="none"
                     />
-                    {/* A thick transparent stroke on the same arc carries the
+                    <path
+                      id={`know-more-text-arc-${segment.id}`}
+                      d={textArc}
+                      fill="none"
+                      stroke="none"
+                    />
+                    {/* A thick transparent stroke on the midline arc carries the
                         tap. The glyphs alone are a few px tall once the pie is
                         scaled to 0.42 on mobile, which is no tap target. */}
                     <path
@@ -1309,22 +1459,29 @@ export default function SpecializationsSection() {
                       strokeWidth={46}
                       style={{ pointerEvents: "stroke", cursor: "none" }}
                     />
+                    {/* Sized off the description line and coloured off the
+                        tools line, so the action reads as part of the same
+                        stack of labels rather than a separate voice. */}
                     <text
                       fill="#0099ff"
-                      fontSize={16.5}
+                      fontSize={13}
                       fontWeight={500}
                       fontFamily="Inter"
-                      letterSpacing="0.3px"
+                      letterSpacing="0.14em"
                       textAnchor="middle"
                       dominantBaseline="middle"
                       style={{
-                        pointerEvents: "none",
+                        cursor: "none",
+                        pointerEvents: "all",
+                        userSelect: "none",
+                        textTransform: "uppercase",
+                        opacity: 0.9,
                         textShadow:
                           "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)",
                       }}
                     >
                       <textPath
-                        href={`#know-more-arc-${segment.id}`}
+                        href={`#know-more-text-arc-${segment.id}`}
                         startOffset="50%"
                       >
                         Know more →
