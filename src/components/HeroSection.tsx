@@ -171,7 +171,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
-          className="max-w-full text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted md:max-w-[480px]"
+          className="max-w-full text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted md:max-w-lg"
         >
           Robotics engineer specializing in manipulation, simulation, and robot
           learning. I build systems that go from a rough idea in MuJoCo or Isaac
