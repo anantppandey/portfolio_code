@@ -818,7 +818,9 @@ export default function SpecializationsSection() {
         style={{
           width: 700,
           height: 700,
-          marginTop: -40,
+          // Extra headroom above the pie below 768, where the section centers
+          // the box in a single viewport and the labels need the air.
+          marginTop: isMobile ? 80 : -40,
           scale: pieScale,
           transformOrigin: "center center",
         }}
