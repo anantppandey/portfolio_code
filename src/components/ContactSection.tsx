@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
 
@@ -33,15 +33,22 @@ export default function ContactSection() {
     "idle" | "loading" | "success" | "error"
   >("idle");
 
+  // Client side throttle: one send per minute, enough to blunt casual spam.
+  const lastSubmitRef = useRef<number>(0);
+
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!name.trim()) newErrors.name = "Name is required";
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = "Enter a valid email address";
     }
-    if (!message.trim()) newErrors.message = "Message is required";
+    if (!message.trim()) {
+      newErrors.message = "Message is required";
+    } else if (message.trim().length < 10) {
+      newErrors.message = "Message must be at least 10 characters";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -52,6 +59,13 @@ export default function ContactSection() {
       return;
     }
 
+    const now = Date.now();
+    if (now - lastSubmitRef.current < 60000) {
+      setErrors({ message: "Please wait 60 seconds before sending again." });
+      return;
+    }
+    lastSubmitRef.current = now;
+
     setStatus("loading");
 
     try {
@@ -59,10 +73,11 @@ export default function ContactSection() {
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         {
-          from_name: name,
-          from_email: email,
-          message: message,
+          from_name: name.trim(),
+          from_email: email.trim(),
+          message: message.trim(),
           to_name: "Anant Pandey",
+          reply_to: email.trim(),
         },
         EMAILJS_PUBLIC_KEY,
       );
@@ -126,6 +141,7 @@ export default function ContactSection() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="mx-auto flex max-w-full flex-col gap-3 p-0 md:max-w-[560px]"
         >
           {/* Name field */}
@@ -138,6 +154,7 @@ export default function ContactSection() {
             <input
               type="text"
               placeholder="Your name"
+              aria-label="Your name"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -160,6 +177,7 @@ export default function ContactSection() {
             <input
               type="email"
               placeholder="your@email.com"
+              aria-label="Your email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -181,6 +199,7 @@ export default function ContactSection() {
           >
             <textarea
               placeholder="What are you working on?"
+              aria-label="Your message"
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
