@@ -46,17 +46,47 @@ body {
 }
 
 body {
-  background-color: #090909;
+  background-color: #000000;
   min-height: 100%;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* The dot grid rides a fixed pseudo element rather than body itself, because
+   the mask that dissolves it into the black at every edge can only be applied
+   to a layer of its own. Painting the same grid on body as well would leave
+   un-faded dots underneath the faded ones and the dissolve would not read.
+   The mask ramp is also what varies the dot density, from the #1a3a6b core
+   at the 60% 50% centre out to a few percent alpha near the edges. z-index 0
+   against the sections at z-index 1 keeps every word above the texture, and
+   pointer-events keeps it out of the way of clicks. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(circle, #1a3a6b 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 70% at 60% 50%,
+    rgba(0,0,0,0.6) 0%,
+    rgba(0,0,0,0.3) 45%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    ellipse 70% 70% at 60% 50%,
+    rgba(0,0,0,0.6) 0%,
+    rgba(0,0,0,0.3) 45%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+
 /* Every section is fully transparent, so the fixed particle field at z-index 0
    is not just a strip behind the first viewport: it covers the viewport at
    every scroll position and shows through every section the user scrolls
-   past. Body #090909 is the fallback base colour. The !important is what lets
+   past. Body #000000 is the fallback base colour. The !important is what lets
    the rule win over the inline background on #projects; everything else here
    only has to beat the `bg-canvas` utility. */
 section,
