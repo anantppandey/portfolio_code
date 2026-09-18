@@ -221,20 +221,6 @@ export default function ProjectsSection() {
           zIndex: 1,
         }}
       >
-        <p
-          style={{
-            fontSize: "11px",
-            color: "#999999",
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            fontWeight: 400,
-            margin: 0,
-            marginBottom: "10px",
-            textAlign: "center",
-          }}
-        >
-          Projects
-        </p>
         <h2
           style={{
             fontSize: isMobile
