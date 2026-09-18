@@ -114,7 +114,7 @@ export default function HeroSection() {
       <GridOverlay />
 
       <div className="relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center px-6 py-10 text-left md:px-8 lg:translate-x-0 lg:px-6 xl:-translate-x-[18%] xl:px-6">
-        <div className="w-full max-w-[650px] text-left">
+        <div className="hero-heading-block w-full max-w-[650px] text-left">
           {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}

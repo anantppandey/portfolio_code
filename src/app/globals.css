@@ -402,4 +402,8 @@ footer {
     padding-top: 48px !important;
     padding-bottom: 64px !important;
   }
+
+  .hero-heading-block {
+    padding-left: 10% !important;
+  }
 }
