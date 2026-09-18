@@ -36,7 +36,7 @@ export default function AboutSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: easing }}
-          className="mb-12 text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+          className="mb-12 text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted"
         >
           About
         </motion.p>

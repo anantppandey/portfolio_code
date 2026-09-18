@@ -857,7 +857,7 @@ export default function SpecializationsSection() {
     >
       <style>{PIE_LAYOUT_CSS}</style>
 
-      <p className="absolute left-6 top-12 z-[5] text-[11px] uppercase tracking-[0.18em] text-[#444444] md:left-[60px]">
+      <p className="absolute left-0 z-[5] w-full text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted" style={{ top: '23px' }}>
         Specializations
       </p>
 
