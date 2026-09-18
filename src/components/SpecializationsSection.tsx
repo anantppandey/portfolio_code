@@ -640,10 +640,13 @@ const PIE_KEYFRAMES = `
 /*
  * Pie box sizing, plus the mobile centring.
  *
- * The box tracks the viewport width on desktop, so the drawing scales with the
- * window instead of sitting at a fixed 700. Below 768 it is pinned back to that
- * 700, which is the size the mobile scale and the -406px margin-bottom in
- * globals.css are calibrated against, and stretched to the height left under
+ * On desktop the box tracks the viewport on both axes, so the drawing scales
+ * with the window instead of sitting at a fixed 700. The height term is what
+ * keeps it inside the section: the drawn ink runs about 1.06x the box, and the
+ * section is only as tall as the viewport, so sizing off the width alone
+ * overflowed the top and bottom of shorter screens. Below 768 the box is pinned
+ * back to 700, which is the size the mobile scale and the -406px margin-bottom
+ * in globals.css are calibrated against, and stretched to the height left under
  * the section label so the drawing, which keeps its own aspect ratio inside it,
  * lands in the middle of it.
  *
@@ -853,8 +856,8 @@ export default function SpecializationsSection() {
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
-          width: "clamp(480px, 55vw, 820px)",
-          height: "clamp(480px, 55vw, 820px)",
+          width: "clamp(360px, min(44vw, 72vh), 680px)",
+          height: "clamp(360px, min(44vw, 72vh), 680px)",
           marginTop: -40,
           scale: pieScale,
           transformOrigin: "center center",
