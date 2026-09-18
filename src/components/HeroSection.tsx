@@ -113,26 +113,18 @@ export default function HeroSection() {
       <HeroBackground />
       <GridOverlay />
 
-      <div className="relative z-[2] flex min-h-screen flex-col items-center justify-center px-6 py-10 text-center">
-        {/* Greeting */}
+      <div className="relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center px-6 py-10 text-left md:px-8 lg:translate-x-0 lg:px-6 xl:-translate-x-[18%] xl:px-6">
+        <div className="w-full max-w-[650px] text-left">
+          {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.6, ease: EASE }}
-          className="mb-[6px] text-[17px] font-normal tracking-[0.04em] text-ink-muted"
+          className="mb-[6px] self-start text-left text-[17px] font-normal tracking-[0.04em] text-ink-muted"
         >
           Hello there,
         </motion.p>
 
-        {/* Role */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
-          className="mb-[10px] text-[17px] font-normal tracking-[-0.1px] text-ink-muted"
-        >
-          Robotics Engineer and Embodied AI Builder
-        </motion.p>
 
         {/* Name */}
         <h1 className="mb-0 leading-[0.82] text-ink">
@@ -140,7 +132,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6, ease: EASE }}
-            className="block text-[clamp(30px,7vw,44px)] font-black tracking-[-1px] text-ink-muted md:text-[clamp(40px,4.5vw,60px)]"
+            className="block text-left text-[clamp(30px,7vw,44px)] font-black tracking-[-1px] text-ink-muted md:text-[clamp(40px,4.5vw,60px)]"
           >
             I&apos;m
           </motion.span>
@@ -149,7 +141,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.42, duration: 0.8, ease: EASE }}
-            className="relative block text-[clamp(64px,16vw,108px)] font-black tracking-[-4px] text-ink md:text-[clamp(100px,11.5vw,165px)] md:tracking-[-6px]"
+            className="relative block text-[clamp(78px,20vw,108px)] font-black tracking-[-4px] text-ink md:text-[clamp(100px,11.5vw,165px)] md:tracking-[-6px]"
           >
             Anant
             <motion.span
@@ -163,7 +155,10 @@ export default function HeroSection() {
             </motion.span>
           </motion.span>
         </h1>
+        </div>
 
+        {/* Centered content below the name */}
+        <div className="flex w-full max-w-[650px] flex-col items-center text-center">
         {/* Separator dividing the hero into halves */}
         <motion.div
           aria-hidden="true"
@@ -182,7 +177,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
-          className="max-w-[520px] text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted"
+          className="max-w-[650px] text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted"
         >
           Robotics engineer specializing in manipulation, simulation, and robot learning. I build systems that go from a rough idea in MuJoCo or Isaac Sim to a working demo on real hardware — using ROS 2, MoveIt 2, and imitation/RL pipelines. Currently looking for my next robotics role in Bangalore.
         </motion.p>
@@ -237,6 +232,7 @@ export default function HeroSection() {
             <span className={LABEL_CLASS}>Chat</span>
           </a>
         </motion.div>
+        </div>
       </div>
     </section>
   );
