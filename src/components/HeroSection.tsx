@@ -185,7 +185,14 @@ export default function HeroSection() {
             </motion.div>
           </div>
 
-          <div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              alignItems: "flex-start",
+            }}
+          >
             <motion.a
               href="/media/CV/Anant_Pandey_Resume.pdf"
               target="_blank"
@@ -193,16 +200,27 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6, ease: EASE }}
-              className="group mb-[18px] flex items-center gap-3 text-[13px] font-normal tracking-[-0.1px] text-ink-muted transition-colors duration-200 hover:text-ink"
-              style={{ cursor: "none" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#ffffff",
+                color: "#000000",
+                borderRadius: "100px",
+                padding: "10px 22px",
+                fontSize: "13px",
+                fontWeight: 500,
+                letterSpacing: "-0.2px",
+                textDecoration: "none",
+                cursor: "none",
+                border: "none",
+                transition: "background 0.2s, color 0.2s",
+                fontFamily: "Inter",
+                whiteSpace: "nowrap",
+              }}
             >
-              <span className="text-ink-faint transition-colors duration-200 group-hover:text-ink">
-                <ResumeIcon />
-              </span>
-              <span>
-                If you want my resume
-                <sup className="ml-[2px] text-[9px] text-accent-blue">**</sup>
-              </span>
+              <ResumeIcon />
+              View my resume
             </motion.a>
 
             <motion.a
@@ -210,25 +228,34 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.6, ease: EASE }}
-              className="group flex items-center gap-3 text-[13px] font-normal tracking-[-0.1px] text-ink-muted transition-colors duration-200 hover:text-ink"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("contact")?.scrollIntoView({
+                  behavior: "smooth",
+                });
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "transparent",
+                color: "#ffffff",
+                borderRadius: "100px",
+                padding: "10px 22px",
+                fontSize: "13px",
+                fontWeight: 500,
+                letterSpacing: "-0.2px",
+                textDecoration: "none",
+                cursor: "none",
+                border: "0.5px solid #262626",
+                transition: "border-color 0.2s, color 0.2s",
+                fontFamily: "Inter",
+                whiteSpace: "nowrap",
+              }}
             >
-              <span className="text-ink-faint transition-colors duration-200 group-hover:text-ink">
-                <ChatIcon />
-              </span>
-              <span>Or have a chat</span>
+              <ChatIcon />
+              Have a chat
             </motion.a>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.0, duration: 0.6, ease: EASE }}
-              className="mt-6 max-w-[240px] text-[11px] font-normal leading-[1.6] tracking-[0.01em] text-[#555555]"
-            >
-              <p>
-                * Robotics Engineer specializing in LeRobot, ROS2 and MoveIt2.
-              </p>
-              <p>** Resume available on request. I don&apos;t bite.</p>
-            </motion.div>
           </div>
         </div>
       </div>
