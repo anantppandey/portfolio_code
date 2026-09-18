@@ -359,8 +359,8 @@ const KNOW_MORE_SWEEP = 44;
  * tracks the edge instead of crossing onto the artwork. It still lands inside
  * the tap band below, which is what keeps the whole label tappable.
  */
-const KNOW_MORE_TEXT_R = 148;
-const KNOW_MORE_TEXT_SWEEP = 25;
+const KNOW_MORE_TEXT_R = 150;
+const KNOW_MORE_TEXT_SWEEP = 27;
 /**
  * Outer radius of the mobile tap target. A slice reads as one shape to a
  * thumb: the donut band, the seam on either side of it, and the curved label
@@ -584,23 +584,31 @@ function SegmentMedia({
  * which this does not currently reach, and is kept so it stays complete if it
  * is ever shown on desktop.
  */
-function KnowMoreLink() {
+function KnowMoreLink({
+  color = "#0099ff",
+  fontSize = "16.5px",
+  iconSize = 15,
+}: {
+  color?: string;
+  fontSize?: string;
+  iconSize?: number;
+}) {
   return (
     <div
       onMouseEnter={(e) => {
         e.currentTarget.style.color = "#ffffff";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.color = "#0099ff";
+        e.currentTarget.style.color = color;
       }}
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: "8px",
         padding: "8px 16px",
-        fontSize: "16.5px",
+        fontSize,
         fontWeight: 500,
-        color: "#0099ff",
+        color,
         fontFamily: "Inter",
         letterSpacing: "0.02em",
         whiteSpace: "nowrap",
@@ -610,11 +618,11 @@ function KnowMoreLink() {
       }}
     >
       <svg
-        width="15"
-        height="15"
+        width={iconSize}
+        height={iconSize}
         viewBox="0 0 24 24"
         fill="none"
-        stroke="#0099ff"
+        stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -1504,7 +1512,7 @@ export default function SpecializationsSection() {
                         stack of labels rather than a separate voice. */}
                     <text
                       fill="#0099ff"
-                      fontSize={13}
+                      fontSize={11}
                       fontWeight={500}
                       fontFamily="Inter"
                       letterSpacing="0.14em"
@@ -1557,7 +1565,7 @@ export default function SpecializationsSection() {
                 transition={{ duration: 0.2, ease: EASE }}
                 style={{
                   position: "absolute",
-                  left: CX,
+                  left: CX - 4,
                   /*
                    * Just inside the bottom edge of the Hardware disc, whose
                    * radius is HARDWARE_R (108). Anchored off the box's own
@@ -1566,7 +1574,7 @@ export default function SpecializationsSection() {
                    * where CY is no longer the top of the box plus 350. The two
                    * agree at the 700px box every desktop case uses.
                    */
-                  top: "calc(50% + 90px)",
+                  top: "calc(50% + 130px)",
                   // The CSS `translate` property rather than `transform`, which
                   // the motion animation above writes to.
                   translate: "-50% -50%",
@@ -1579,7 +1587,7 @@ export default function SpecializationsSection() {
                   setSelectedProject(centerData.primaryProject);
                 }}
               >
-                <KnowMoreLink />
+                <KnowMoreLink color="#ffffff" fontSize="13px" iconSize={12} />
               </motion.div>
             )}
           </AnimatePresence>
