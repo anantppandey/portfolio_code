@@ -340,6 +340,20 @@ footer {
     padding-bottom: 56px !important;
   }
 
+  /* The class hook for this section's mobile layout. Its vertical padding is
+     deliberately not set here: #specializations owns that, and a class rule
+     loses to that ID anyway, so padding written here would only look like it
+     took effect. The 136px top value is calibrated to keep a tapped slice
+     label clear of the absolutely positioned caption. */
+  .specializations-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: unset !important;
+    height: auto !important;
+  }
+
   /* The section no longer reserves a viewport, so the wrapper must not
      either, otherwise the gap simply moves one level up. */
   .specializations-wrapper {
@@ -347,13 +361,29 @@ footer {
     min-height: unset !important;
   }
 
-  /* The pie is laid out at a fixed 700px and only scaled down (pieScale is
-     0.42 on mobile), so the box keeps reserving its full height in layout
-     while the drawing shrinks. Scale from the top and pull the unused
-     scaled-away height back out from underneath it. */
+  /* The box carries its own mobile size instead of being pinned to the 700px
+     desktop layout and scaled down with JS. That pin reserved a full 700px of
+     height, raised to a whole viewport by the old min-height, and then handed
+     most of it back with a negative margin-bottom; whatever the margin could
+     not claw back sat under the pie as dead space. Sized here, the box is
+     exactly as tall as the drawing, so the only room below it is the section
+     padding.
+
+     The vw term is set by what the drawing reaches, not by its 700 box. A
+     tapped slice rides at radius 420, so its ink spans about 1.2x the box and
+     the sides run past the container: at 88vw on a 390px screen the box is 343
+     and the tapped title alone loses 12px to the section's overflow clip, a
+     good 7px more than the old layout gave up. 75vw draws the box at 292
+     against the 294 the scaled layout drew, so nothing that used to fit is
+     cut now, and the dead space is gone all the same. The 260px floor is the
+     same constraint at a 320px screen, and the 420px cap stops it ballooning
+     on a large tablet. */
   .pie-container {
-    transform-origin: top center !important;
-    margin-bottom: calc(700px * (1 - 0.42) * -1) !important;
+    width: clamp(260px, 75vw, 420px) !important;
+    height: clamp(260px, 75vw, 420px) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    transform: none !important;
   }
 
   #projects {

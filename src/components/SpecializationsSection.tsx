@@ -638,40 +638,13 @@ const PIE_KEYFRAMES = `
 `;
 
 /*
- * Pie box sizing, plus the mobile centring.
- *
- * On desktop the box tracks the viewport on both axes, so the drawing scales
- * with the window instead of sitting at a fixed 700. The height term is what
- * keeps it inside the section: the drawn ink runs about 1.06x the box, and the
- * section is only as tall as the viewport, so sizing off the width alone
- * overflowed the top and bottom of shorter screens. Below 768 the box is pinned
- * back to 700, which is the size the mobile scale and the -406px margin-bottom
- * in globals.css are calibrated against, and stretched to the height left under
- * the section label so the drawing, which keeps its own aspect ratio inside it,
- * lands in the middle of it.
- *
- * Written as a media query rather than an isMobile check because this is
- * layout and it has to be right on the first paint. The size and the margin-top
- * are both owned by the inline style on desktop, so those overrides need
- * !important to win, the same way the rest of this section's mobile rules in
- * globals.css do.
+ * The pie box sizes itself from the clamp in the markup at every width, so the
+ * fixed 700px mobile layout that used to be pinned here is gone. It had to
+ * reserve that height and then hand most of it back with a negative
+ * margin-bottom in globals.css, and what could not be handed back is what read
+ * as dead space under the pie. The mobile rules for the box now live in
+ * globals.css alongside the rest of this section's.
  */
-const PIE_LAYOUT_CSS = `
-  @media (max-width: 767px) {
-    .pie-container {
-      width: 700px !important;
-      height: 700px !important;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: calc(100dvh - 60px);
-      margin-top: 0 !important;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-  }
-`;
 
 // ---- section ------------------------------------------------------------------
 
@@ -682,9 +655,6 @@ export default function SpecializationsSection() {
   const [selectedProject, setSelectedProject] = useState<SegmentProject | null>(
     null,
   );
-  // The drawing is laid out in fixed units, so it scales to fit rather than
-  // reflowing. Starts at 1 so server and first client render agree.
-  const [pieScale, setPieScale] = useState(1);
   /** Starts false so the server render matches; the real value lands after mount. */
   const [isMobile, setIsMobile] = useState(false);
   /** One entry per slice plus the Hardware disc, keyed by segment id. */
@@ -759,20 +729,6 @@ export default function SpecializationsSection() {
     setTappedSegment(segments[0].id);
   }, [isMobile]);
 
-  useEffect(() => {
-    const pick = () => {
-      // The box sizes itself now, so desktop runs at 1 and the scale is down to
-      // the one job it still has: fitting the 700px box mobile pins itself to,
-      // which 0.42 does. The old 900 and 1200 steps were covering for the fixed
-      // size the clamp took over, and stacked on the clamp they shrank the pie
-      // twice over.
-      setPieScale(window.innerWidth < 768 ? 0.42 : 1);
-    };
-    pick();
-    window.addEventListener("resize", pick);
-    return () => window.removeEventListener("resize", pick);
-  }, []);
-
   // Only the active shape's clip plays; the rest rewind so each expand starts
   // from the top. play() rejects if the source cannot load, hence the catch.
   useEffect(() => {
@@ -845,10 +801,8 @@ export default function SpecializationsSection() {
   return (
     <section
       id="specializations"
-      className="relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
+      className="specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
     >
-      <style>{PIE_LAYOUT_CSS}</style>
-
       <p className="absolute left-6 top-12 z-[5] text-[11px] uppercase tracking-[0.18em] text-[#444444] md:left-[60px]">
         02 — Specializations
       </p>
@@ -856,11 +810,9 @@ export default function SpecializationsSection() {
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
-          width: "clamp(360px, min(44vw, 72vh), 680px)",
-          height: "clamp(360px, min(44vw, 72vh), 680px)",
+          width: "clamp(300px, min(44vw, 72vh), 680px)",
+          height: "clamp(300px, min(44vw, 72vh), 680px)",
           marginTop: -40,
-          scale: pieScale,
-          transformOrigin: "center center",
         }}
       >
         <svg
