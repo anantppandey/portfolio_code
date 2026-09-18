@@ -82,14 +82,15 @@ export default function ContactSection() {
         EMAILJS_PUBLIC_KEY,
       );
       setStatus("success");
-      setTimeout(() => {
-        setName("");
-        setEmail("");
-        setMessage("");
-        setStatus("idle");
-      }, 3000);
-    } catch {
+      setName("");
+      setEmail("");
+      setMessage("");
+      setErrors({});
+      setTimeout(() => setStatus("idle"), 5000);
+    } catch (err) {
+      console.error("EmailJS error:", err);
       setStatus("error");
+      setTimeout(() => setStatus("idle"), 5000);
     }
   };
 
@@ -219,7 +220,7 @@ export default function ContactSection() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="inline-flex self-start rounded-full border-[0.5px] border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] px-[14px] py-1.5 text-[12px] text-[#22c55e]"
+              className="mb-2 rounded-full border-[0.5px] border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] px-[14px] py-1.5 text-center text-[12px] text-[#22c55e]"
             >
               Message sent. Anant will get back to you soon.
             </motion.div>
@@ -229,7 +230,7 @@ export default function ContactSection() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="inline-flex self-start rounded-full border-[0.5px] border-[rgba(255,68,68,0.3)] bg-[rgba(255,68,68,0.1)] px-[14px] py-1.5 text-[12px] text-[#ff4444]"
+              className="mb-2 rounded-full border-[0.5px] border-[rgba(255,68,68,0.3)] bg-[rgba(255,68,68,0.1)] px-[14px] py-1.5 text-center text-[12px] text-[#ff4444]"
             >
               Something went wrong. Please try again or email directly.
             </motion.div>
@@ -244,10 +245,13 @@ export default function ContactSection() {
           >
             <button
               type="submit"
-              disabled={status === "loading"}
-              className={`mt-2 flex h-[52px] w-full items-center justify-center rounded-full text-[14px] font-medium tracking-[-0.2px] transition-colors duration-200 ${
+              disabled={status === "loading" || status === "success"}
+              aria-label={
+                status === "loading" ? "Sending message" : "Send message"
+              }
+              className={`mt-2 flex h-[52px] w-full items-center justify-center rounded-full text-[14px] font-medium tracking-[-0.2px] transition-all duration-200 ${
                 status === "loading"
-                  ? "cursor-not-allowed bg-[#e0e0e0] text-[#000000]"
+                  ? "cursor-not-allowed bg-[#cccccc] text-[#000000] opacity-70"
                   : status === "success"
                     ? "bg-[#22c55e] text-[#ffffff]"
                     : status === "error"
