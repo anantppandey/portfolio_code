@@ -114,9 +114,11 @@ export default function HeroSection() {
       <GridOverlay />
 
       <div className="hero-content-wrapper relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center px-6 py-10 text-left md:px-8 lg:translate-x-0 lg:px-6 xl:-translate-x-[18%] xl:px-6"
-        style={{ marginLeft: "20%", width: "110%" }}
+        style={{ marginLeft: "20%", width: "130%" }}
       >
-        <div className="hero-heading-block w-full max-w-[650px] text-left">
+        <div className="hero-heading-block w-full max-w-[650px] text-left"
+          style={{ transform: "scaleX(1.10)", transformOrigin: "left center" }}
+        >
           {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
