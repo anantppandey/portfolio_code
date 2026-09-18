@@ -316,7 +316,12 @@ footer {
      viewport the hero actually occupies. The scale animation has no room left
      to run here as a result. */
   .hero-wrapper {
-    height: 100vh !important;
+    height: auto !important;
+  }
+
+  .hero-wrapper > div {
+    height: auto !important;
+    position: relative !important;
   }
 
   /* The curved labels are drawn outside the pie's own 700px box: at rest they
