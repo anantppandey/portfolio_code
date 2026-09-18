@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import emailjs from "@emailjs/browser";
 
@@ -33,15 +33,22 @@ export default function ContactSection() {
     "idle" | "loading" | "success" | "error"
   >("idle");
 
+  // Client side throttle: one send per minute, enough to blunt casual spam.
+  const lastSubmitRef = useRef<number>(0);
+
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!name.trim()) newErrors.name = "Name is required";
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = "Enter a valid email address";
     }
-    if (!message.trim()) newErrors.message = "Message is required";
+    if (!message.trim()) {
+      newErrors.message = "Message is required";
+    } else if (message.trim().length < 10) {
+      newErrors.message = "Message must be at least 10 characters";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -52,6 +59,13 @@ export default function ContactSection() {
       return;
     }
 
+    const now = Date.now();
+    if (now - lastSubmitRef.current < 60000) {
+      setErrors({ message: "Please wait 60 seconds before sending again." });
+      return;
+    }
+    lastSubmitRef.current = now;
+
     setStatus("loading");
 
     try {
@@ -59,22 +73,24 @@ export default function ContactSection() {
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         {
-          from_name: name,
-          from_email: email,
-          message: message,
+          from_name: name.trim(),
+          from_email: email.trim(),
+          message: message.trim(),
           to_name: "Anant Pandey",
+          reply_to: email.trim(),
         },
         EMAILJS_PUBLIC_KEY,
       );
       setStatus("success");
-      setTimeout(() => {
-        setName("");
-        setEmail("");
-        setMessage("");
-        setStatus("idle");
-      }, 3000);
-    } catch {
+      setName("");
+      setEmail("");
+      setMessage("");
+      setErrors({});
+      setTimeout(() => setStatus("idle"), 5000);
+    } catch (err) {
+      console.error("EmailJS error:", err);
       setStatus("error");
+      setTimeout(() => setStatus("idle"), 5000);
     }
   };
 
@@ -126,6 +142,7 @@ export default function ContactSection() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="mx-auto flex max-w-full flex-col gap-3 p-0 md:max-w-[560px]"
         >
           {/* Name field */}
@@ -138,6 +155,7 @@ export default function ContactSection() {
             <input
               type="text"
               placeholder="Your name"
+              aria-label="Your name"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -160,6 +178,7 @@ export default function ContactSection() {
             <input
               type="email"
               placeholder="your@email.com"
+              aria-label="Your email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -181,6 +200,7 @@ export default function ContactSection() {
           >
             <textarea
               placeholder="What are you working on?"
+              aria-label="Your message"
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
@@ -200,7 +220,7 @@ export default function ContactSection() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="inline-flex self-start rounded-full border-[0.5px] border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] px-[14px] py-1.5 text-[12px] text-[#22c55e]"
+              className="mb-2 rounded-full border-[0.5px] border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] px-[14px] py-1.5 text-center text-[12px] text-[#22c55e]"
             >
               Message sent. Anant will get back to you soon.
             </motion.div>
@@ -210,7 +230,7 @@ export default function ContactSection() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="inline-flex self-start rounded-full border-[0.5px] border-[rgba(255,68,68,0.3)] bg-[rgba(255,68,68,0.1)] px-[14px] py-1.5 text-[12px] text-[#ff4444]"
+              className="mb-2 rounded-full border-[0.5px] border-[rgba(255,68,68,0.3)] bg-[rgba(255,68,68,0.1)] px-[14px] py-1.5 text-center text-[12px] text-[#ff4444]"
             >
               Something went wrong. Please try again or email directly.
             </motion.div>
@@ -225,10 +245,13 @@ export default function ContactSection() {
           >
             <button
               type="submit"
-              disabled={status === "loading"}
-              className={`mt-2 flex h-[52px] w-full items-center justify-center rounded-full text-[14px] font-medium tracking-[-0.2px] transition-colors duration-200 ${
+              disabled={status === "loading" || status === "success"}
+              aria-label={
+                status === "loading" ? "Sending message" : "Send message"
+              }
+              className={`mt-2 flex h-[52px] w-full items-center justify-center rounded-full text-[14px] font-medium tracking-[-0.2px] transition-all duration-200 ${
                 status === "loading"
-                  ? "cursor-not-allowed bg-[#e0e0e0] text-[#000000]"
+                  ? "cursor-not-allowed bg-[#cccccc] text-[#000000] opacity-70"
                   : status === "success"
                     ? "bg-[#22c55e] text-[#ffffff]"
                     : status === "error"
