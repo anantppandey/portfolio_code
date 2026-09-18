@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import HoverImageReveal from "@/components/HoverImageReveal";
 import { lockScroll, unlockScroll } from "@/components/SmoothScroll";
 
+const isVideoSrc = (src: string) => /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(src);
+
 const projects = [
 {
     title: "5-DOF Manipulation Stack",
@@ -334,34 +336,82 @@ export default function ProjectsSection() {
               <div className="project-overlay-left" style={{ overflow: "hidden" }}>
                 <div
                   style={{
+                    position: "relative",
                     width: "100%",
                     height: "100%",
-                    background: "#141414",
+                    background: "#080808",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
                   }}
                 >
-                  {/\.(mp4|webm)$/i.test(selectedProject.videoSrc) ? (
-                    <video
-                      src={selectedProject.videoSrc}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
+                  {selectedProject.videoSrc ? (
+                    isVideoSrc(selectedProject.videoSrc) ? (
+                      <video
+                        src={selectedProject.videoSrc}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        controls
+                        preload="metadata"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          width: "auto",
+                          height: "auto",
+                          objectFit: "contain",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={selectedProject.videoSrc}
+                        alt={`${selectedProject.title} project preview`}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          width: "auto",
+                          height: "auto",
+                          objectFit: "contain",
+                          display: "block",
+                        }}
+                      />
+                    )
                   ) : (
-                    <img
-                      src={selectedProject.videoSrc}
-                      alt={selectedProject.tagline}
+                    <div
                       style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexDirection: "column",
+                        gap: "12px",
                       }}
-                    />
+                    >
+                      <div
+                        className="project-overlay-initials"
+                        style={{
+                          fontSize: "64px",
+                          fontWeight: 500,
+                          color: "#1e1e1e",
+                          letterSpacing: "-3px",
+                        }}
+                      >
+                        {selectedProject.initials}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: "#222",
+                          letterSpacing: "0.2em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Preview soon
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div
