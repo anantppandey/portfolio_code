@@ -52,7 +52,7 @@ export default function AboutSection() {
               transition={{ delay: 0, duration: 0.6, ease: easing }}
             >
               <span className="inline-block rounded-full border-[0.5px] border-hairline px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-                Who I am
+                What I do
               </span>
             </motion.div>
 
@@ -67,8 +67,8 @@ export default function AboutSection() {
             >
               Building robots
               <br />
-              that learn.
-              <span className="text-accent-blue">*</span>
+              that learn
+              {/* <span className="text-accent-blue">*</span> */}
             </motion.h2>
 
             {/* Footnote asterisk */}

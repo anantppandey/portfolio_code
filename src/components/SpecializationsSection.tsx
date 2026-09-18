@@ -204,7 +204,7 @@ const segments = [
   id: "simulation",
   title: "AUTONOMOUS MANIPULATION",
   tools: "ROS2 · Gazebo · MoveIt2",
-  description: "PERCEPTION · IK · MOTION PLANNING",
+  description: "PERCEPTION, IK & MOTION PLANNING",
   startAngle: -90,
   endAngle: 30,
 

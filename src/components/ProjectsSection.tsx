@@ -247,15 +247,14 @@ export default function ProjectsSection() {
             margin: 0,
           }}
         >
-          More of my projects
+          MORE OF MY WORK
           <span
             style={{
               color: "#0099ff",
               fontSize: "inherit",
               fontWeight: 500,
             }}
-          >
-            .
+          >.
           </span>
         </h2>
       </div>

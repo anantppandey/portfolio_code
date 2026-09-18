@@ -12,9 +12,9 @@ import emailjs from "@emailjs/browser";
 //   PUBLIC_KEY  → Account         → API Keys → Public Key
 // The template must accept: from_name, from_email, message, to_name.
 // ---------------------------------------------------------------------------
-const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = "service_7e1i2w7";
+const EMAILJS_TEMPLATE_ID = "template_tezt4wp";
+const EMAILJS_PUBLIC_KEY = "SWlr2JWtdWKz7KPsx";
 
 const easing = [0.16, 1, 0.3, 1] as const;
 
