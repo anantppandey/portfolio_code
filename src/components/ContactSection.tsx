@@ -256,7 +256,7 @@ export default function ContactSection() {
           className="mt-12 flex items-center justify-center gap-3 md:gap-6"
         >
           <a
-            href="https://linkedin.com/in/anantpandey"
+            href="https://www.linkedin.com/in/anant-p-pandey/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[12px] uppercase tracking-[0.12em] text-[#555555] transition-colors duration-200 hover:text-ink"

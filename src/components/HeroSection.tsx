@@ -165,7 +165,7 @@ export default function HeroSection() {
               className="mt-5 flex items-center gap-4"
             >
               <a
-                href="https://linkedin.com/in/anantpandey"
+                href="https://www.linkedin.com/in/anant-p-pandey/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
