@@ -672,12 +672,13 @@ export default function HoverImageReveal({
         const isImage = !!src && !isVideo && !src.startsWith("/videos");
         const broken = failedMedia[i];
         const mediaStyle: CSSProperties = {
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center top",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          width: "auto",
+          height: "auto",
+          objectFit: "contain",
+          objectPosition: "center",
           display: "block",
-          borderRadius: "10px",
         };
 
         return (
@@ -776,8 +777,9 @@ export default function HoverImageReveal({
                     style={{
                       position: "relative",
                       minWidth: 0,
-                      height: "300px",
-                      background: "#111111",
+                      width: "100%",
+                      height: "100%",
+                      background: "#080808",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -796,11 +798,12 @@ export default function HoverImageReveal({
                         }}
                         onError={() => markBroken(i)}
                         style={{
-                          ...mediaStyle,
-                          height: "100%",
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          width: "auto",
+                          height: "auto",
                           objectFit: "contain",
-                          objectPosition: "center",
-                          borderRadius: 0,
+                          display: "block",
                         }}
                       />
                     ) : isImage && !broken ? (
@@ -813,11 +816,12 @@ export default function HoverImageReveal({
                         }}
                         onError={() => markBroken(i)}
                         style={{
-                          ...mediaStyle,
-                          height: "100%",
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          width: "auto",
+                          height: "auto",
                           objectFit: "contain",
-                          objectPosition: "center",
-                          borderRadius: 0,
+                          display: "block",
                         }}
                       />
                     ) : !gifFailed ? (
@@ -834,11 +838,12 @@ export default function HoverImageReveal({
                           setGifFailed(true);
                         }}
                         style={{
-                          ...mediaStyle,
-                          height: "100%",
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          width: "auto",
+                          height: "auto",
                           objectFit: "contain",
-                          objectPosition: "center",
-                          borderRadius: 0,
+                          display: "block",
                         }}
                       />
                     ) : (
@@ -846,7 +851,7 @@ export default function HoverImageReveal({
                         style={{
                           position: "absolute",
                           inset: 0,
-                          background: "#111111",
+                          background: "#080808",
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
