@@ -46,17 +46,113 @@ body {
 }
 
 body {
-  background-color: #090909;
+  background-color: #000000;
   min-height: 100%;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* One tile of the dot grid. Every texture layer reads its spacing from
+     here, so the whole grid can be tightened or widened in this one place. */
+  --dot-grid: 25.2px;
+}
+
+/* The dot grid rides fixed pseudo elements rather than body itself, because
+   the sweep below is a mask, and a mask can only be applied to a layer of its
+   own. z-index 0 against the sections at z-index 1 keeps every word above the
+   texture, and pointer-events keeps it out of the way of clicks.
+
+   There is deliberately no vignette on these layers. An earlier pass faded
+   the dots out in an ellipse around the centre, which left the rest of the
+   page bare; the texture is meant to be read everywhere, so the dots run to
+   all four edges and to every scroll position, and the fixed positioning is
+   what keeps that true as the page moves.
+
+   What moves is the mask, never the dots. Each mask is one horizontal ramp
+   tiled exactly at its own width, so the tiles join seamlessly, and walking
+   mask-position by one width carries the bright band across the page and back
+   to the phase it started on. Dots the band is over come up, dots behind it
+   settle down, and the trough is a dim floor rather than nothing, so no part
+   of the page is ever left without texture. The two ramps are different
+   widths and travel in opposite directions: their bands cross, pull apart and
+   meet again, which is what stops the sweep reading as one pulse and gives
+   the shifting, left and right, never-quite-repeating motion. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(circle, #1a3a6b 1px, transparent 1px);
+  background-size: var(--dot-grid) var(--dot-grid);
+  pointer-events: none;
+}
+
+/* The base field. Its ramp runs 0.25 to 0.75 across 260px, so the crest is
+   the quarter brighter dot the texture was tuned to and the trough is a third
+   of that rather than nothing. Travels left to right. */
+body::before {
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0.25), rgba(0,0,0,0.75), rgba(0,0,0,0.25));
+  mask-image: linear-gradient(to right, rgba(0,0,0,0.25), rgba(0,0,0,0.75), rgba(0,0,0,0.25));
+  -webkit-mask-size: 260px 100%;
+  mask-size: 260px 100%;
+  animation: dot-grid-sweep-right 13s linear infinite;
+}
+
+/* The companion field, thinned to a ninth of the density on a tripled tile and
+   set a third of a tile off the steady dots, so what it adds lands in the gaps
+   at uneven distances instead of thickening the grid. Wider ramp, deeper
+   contrast, and it travels the other way. */
+body::after {
+  background-size: calc(var(--dot-grid) * 3) calc(var(--dot-grid) * 3);
+  background-position: calc(var(--dot-grid) / 3) calc(var(--dot-grid) * 2 / 3);
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,1), rgba(0,0,0,0.1));
+  mask-image: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,1), rgba(0,0,0,0.1));
+  -webkit-mask-size: 430px 100%;
+  mask-size: 430px 100%;
+  animation: dot-grid-sweep-left 19s linear infinite;
+}
+
+/* One mask width of travel per loop, which is exactly what makes the loop
+   invisible: the mask comes back around on the same phase of its own ramp,
+   and the dot grid underneath it has not moved at all. */
+@keyframes dot-grid-sweep-right {
+  from {
+    mask-position: 0 0;
+  }
+  to {
+    mask-position: 260px 0;
+  }
+}
+
+@keyframes dot-grid-sweep-left {
+  from {
+    mask-position: 0 0;
+  }
+  to {
+    mask-position: -430px 0;
+  }
+}
+
+/* Decorative motion only. With it off, the base layer flattens to a single
+   level so what is left is the even grid the texture is meant to be, and the
+   companion goes, since a scatter of lone dots is only there to break the
+   grid up while it moves. */
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none !important;
+    -webkit-mask-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)) !important;
+    mask-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)) !important;
+  }
+
+  body::after {
+    display: none !important;
+  }
 }
 
 /* Every section is fully transparent, so the fixed particle field at z-index 0
    is not just a strip behind the first viewport: it covers the viewport at
    every scroll position and shows through every section the user scrolls
-   past. Body #090909 is the fallback base colour. The !important is what lets
+   past. Body #000000 is the fallback base colour. The !important is what lets
    the rule win over the inline background on #projects; everything else here
    only has to beat the `bg-canvas` utility. */
 section,
@@ -305,26 +401,5 @@ footer {
   #contact {
     padding-top: 48px !important;
     padding-bottom: 64px !important;
-  }
-}
-
-/* The mobile carousel answers vertical scroll by advancing one card, which is
-   not a gesture anyone expects to find in a card strip, so the hint names it.
-   The element ships hidden inline and only this query reveals it, which keeps
-   desktop showing nothing: there the rows reveal on hover and vertical scroll
-   still scrolls the page. */
-@media (max-width: 767px) {
-  .mobile-scroll-hint {
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: #333333;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-family: Inter;
-    margin-top: 12px;
-    padding-bottom: 8px;
   }
 }

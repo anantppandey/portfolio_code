@@ -637,6 +637,42 @@ const PIE_KEYFRAMES = `
   }
 `;
 
+/*
+ * Pie box sizing, plus the mobile centring.
+ *
+ * On desktop the box tracks the viewport on both axes, so the drawing scales
+ * with the window instead of sitting at a fixed 700. The height term is what
+ * keeps it inside the section: the drawn ink runs about 1.06x the box, and the
+ * section is only as tall as the viewport, so sizing off the width alone
+ * overflowed the top and bottom of shorter screens. Below 768 the box is pinned
+ * back to 700, which is the size the mobile scale and the -406px margin-bottom
+ * in globals.css are calibrated against, and stretched to the height left under
+ * the section label so the drawing, which keeps its own aspect ratio inside it,
+ * lands in the middle of it.
+ *
+ * Written as a media query rather than an isMobile check because this is
+ * layout and it has to be right on the first paint. The size and the margin-top
+ * are both owned by the inline style on desktop, so those overrides need
+ * !important to win, the same way the rest of this section's mobile rules in
+ * globals.css do.
+ */
+const PIE_LAYOUT_CSS = `
+  @media (max-width: 767px) {
+    .pie-container {
+      width: 700px !important;
+      height: 700px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100dvh - 60px);
+      margin-top: 0 !important;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+`;
+
 // ---- section ------------------------------------------------------------------
 
 export default function SpecializationsSection() {
@@ -646,7 +682,7 @@ export default function SpecializationsSection() {
   const [selectedProject, setSelectedProject] = useState<SegmentProject | null>(
     null,
   );
-  // The pie is laid out in fixed pixels, so it scales to fit rather than
+  // The drawing is laid out in fixed units, so it scales to fit rather than
   // reflowing. Starts at 1 so server and first client render agree.
   const [pieScale, setPieScale] = useState(1);
   /** Starts false so the server render matches; the real value lands after mount. */
@@ -725,10 +761,12 @@ export default function SpecializationsSection() {
 
   useEffect(() => {
     const pick = () => {
-      const w = window.innerWidth;
-      // Only the scale differs on mobile, purely so the 700px pie fits the
-      // viewport. The layout itself stays identical to desktop.
-      setPieScale(w < 768 ? 0.42 : w < 900 ? 0.72 : w < 1200 ? 0.85 : 1);
+      // The box sizes itself now, so desktop runs at 1 and the scale is down to
+      // the one job it still has: fitting the 700px box mobile pins itself to,
+      // which 0.42 does. The old 900 and 1200 steps were covering for the fixed
+      // size the clamp took over, and stacked on the clamp they shrank the pie
+      // twice over.
+      setPieScale(window.innerWidth < 768 ? 0.42 : 1);
     };
     pick();
     window.addEventListener("resize", pick);
@@ -809,6 +847,8 @@ export default function SpecializationsSection() {
       id="specializations"
       className="relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
     >
+      <style>{PIE_LAYOUT_CSS}</style>
+
       <p className="absolute left-6 top-12 z-[5] text-[11px] uppercase tracking-[0.18em] text-[#444444] md:left-[60px]">
         02 — Specializations
       </p>
@@ -816,8 +856,8 @@ export default function SpecializationsSection() {
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
-          width: 700,
-          height: 700,
+          width: "clamp(360px, min(44vw, 72vh), 680px)",
+          height: "clamp(360px, min(44vw, 72vh), 680px)",
           marginTop: -40,
           scale: pieScale,
           transformOrigin: "center center",
@@ -1518,9 +1558,15 @@ export default function SpecializationsSection() {
                 style={{
                   position: "absolute",
                   left: CX,
-                  // Just inside the bottom edge of the Hardware disc, whose
-                  // radius is HARDWARE_R (108).
-                  top: CY + 90,
+                  /*
+                   * Just inside the bottom edge of the Hardware disc, whose
+                   * radius is HARDWARE_R (108). Anchored off the box's own
+                   * middle rather than the CY constant because below 768 the
+                   * box is stretched and the drawing sits centred inside it,
+                   * where CY is no longer the top of the box plus 350. The two
+                   * agree at the 700px box every desktop case uses.
+                   */
+                  top: "calc(50% + 90px)",
                   // The CSS `translate` property rather than `transform`, which
                   // the motion animation above writes to.
                   translate: "-50% -50%",

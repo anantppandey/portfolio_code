@@ -644,20 +644,6 @@ export default function HoverImageReveal({
             />
           ))}
         </div>
-
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: "10px",
-            color: "#2a2a2a",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            marginTop: "8px",
-            fontFamily: "Inter",
-          }}
-        >
-          Swipe to explore
-        </p>
       </div>
     );
   }
