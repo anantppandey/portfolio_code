@@ -36,9 +36,9 @@ export default function AboutSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: easing }}
-          className="mb-12 text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+          className="mb-12 text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted"
         >
-          03 — About
+          About
         </motion.p>
 
         <div className="about-grid flex flex-col gap-[64px] lg:flex-row">

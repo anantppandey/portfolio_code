@@ -224,15 +224,16 @@ export default function ProjectsSection() {
         <p
           style={{
             fontSize: "11px",
-            color: "#444444",
+            color: "#999999",
             letterSpacing: "0.18em",
             textTransform: "uppercase",
             fontWeight: 400,
             margin: 0,
             marginBottom: "10px",
+            textAlign: "center",
           }}
         >
-          03 — Projects
+          Projects
         </p>
         <h2
           style={{
