@@ -432,4 +432,10 @@ footer {
     padding-top: 48px !important;
     padding-bottom: 64px !important;
   }
+
+  .hero-section {
+    min-height: unset !important;
+    height: auto !important;
+    padding-bottom: 48px !important;
+  }
 }

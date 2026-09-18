@@ -108,12 +108,12 @@ export default function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative z-[1] min-h-screen w-full overflow-hidden bg-canvas py-0"
+      className="hero-section relative z-[1] min-h-[100svh] w-full overflow-hidden bg-canvas py-0"
     >
       <HeroBackground />
       <GridOverlay />
 
-      <div className="relative z-[2] px-6 pb-10 pt-[80px] md:pl-[100px] md:pr-[160px]">
+      <div className="relative z-[2] px-6 pb-8 pt-[80px] md:pl-[100px] md:pr-[160px]">
         {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
