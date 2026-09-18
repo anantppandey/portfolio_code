@@ -307,24 +307,3 @@ footer {
     padding-bottom: 64px !important;
   }
 }
-
-/* The mobile carousel answers vertical scroll by advancing one card, which is
-   not a gesture anyone expects to find in a card strip, so the hint names it.
-   The element ships hidden inline and only this query reveals it, which keeps
-   desktop showing nothing: there the rows reveal on hover and vertical scroll
-   still scrolls the page. */
-@media (max-width: 767px) {
-  .mobile-scroll-hint {
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: #333333;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-family: Inter;
-    margin-top: 12px;
-    padding-bottom: 8px;
-  }
-}
