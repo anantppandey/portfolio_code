@@ -637,6 +637,32 @@ const PIE_KEYFRAMES = `
   }
 `;
 
+/*
+ * Mobile centring for the pie box. The 700px box is stretched to the height
+ * left under the section label and the drawing, which keeps its own aspect
+ * ratio inside it, lands in the middle of it. That evens out the space above
+ * and below the pie instead of leaving it hanging low in the section.
+ *
+ * Written as a media query rather than an isMobile check because this is
+ * layout and it has to be right on the first paint. margin-top is owned by the
+ * inline style on desktop, so the override needs !important to win, the same
+ * way the rest of this section's mobile rules in globals.css do.
+ */
+const PIE_MOBILE_CSS = `
+  @media (max-width: 767px) {
+    .pie-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100dvh - 60px);
+      margin-top: 0 !important;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+`;
+
 // ---- section ------------------------------------------------------------------
 
 export default function SpecializationsSection() {
@@ -809,6 +835,8 @@ export default function SpecializationsSection() {
       id="specializations"
       className="relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
     >
+      <style>{PIE_MOBILE_CSS}</style>
+
       <p className="absolute left-6 top-12 z-[5] text-[11px] uppercase tracking-[0.18em] text-[#444444] md:left-[60px]">
         02 — Specializations
       </p>
@@ -818,9 +846,7 @@ export default function SpecializationsSection() {
         style={{
           width: 700,
           height: 700,
-          // Extra headroom above the pie below 768, where the section centers
-          // the box in a single viewport and the labels need the air.
-          marginTop: isMobile ? 80 : -40,
+          marginTop: -40,
           scale: pieScale,
           transformOrigin: "center center",
         }}
@@ -1520,9 +1546,15 @@ export default function SpecializationsSection() {
                 style={{
                   position: "absolute",
                   left: CX,
-                  // Just inside the bottom edge of the Hardware disc, whose
-                  // radius is HARDWARE_R (108).
-                  top: CY + 90,
+                  /*
+                   * Just inside the bottom edge of the Hardware disc, whose
+                   * radius is HARDWARE_R (108). Anchored off the box's own
+                   * middle rather than the CY constant because below 768 the
+                   * box is stretched and the drawing sits centred inside it,
+                   * where CY is no longer the top of the box plus 350. The two
+                   * agree at the 700px box every desktop case uses.
+                   */
+                  top: "calc(50% + 90px)",
                   // The CSS `translate` property rather than `transform`, which
                   // the motion animation above writes to.
                   translate: "-50% -50%",
