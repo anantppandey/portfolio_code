@@ -5,15 +5,15 @@ import { motion } from "framer-motion";
 const skillCards = [
   {
     category: "Languages",
-    skills: ["Python", "C++", "MATLAB", "Oracle SQL"],
+    skills: ["Python", "C++", "MATLAB"],
   },
   {
     category: "Platforms and Simulation",
-    skills: ["ROS2", "Gazebo", "Isaac Sim", "MuJoCo", "MoveIt2", "Fusion 360"],
+    skills: ["ROS2", "Gazebo", "Isaac Sim", "MuJoCo", "MoveIt2"],
   },
   {
     category: "Hardware and IoT",
-    skills: ["Raspberry Pi", "Arduino", "NodeMCU", "3D Printing"],
+    skills: ["Raspberry Pi", "Arduino", "NodeMCU", "3D Printing", "Fusion 360"],
   },
   {
     category: "AI and Data",
@@ -72,15 +72,14 @@ export default function AboutSection() {
             </motion.h2>
 
             {/* Footnote asterisk */}
-            <motion.p
+            {/* <motion.p
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.25, duration: 0.6, ease: easing }}
               className="text-[12px] text-ink-faint"
             >
-              * imitation learning counts
-            </motion.p>
+            </motion.p> */}
 
             {/* Bio paragraphs */}
             <motion.p
@@ -90,9 +89,7 @@ export default function AboutSection() {
               transition={{ delay: 0.3, duration: 0.6, ease: easing }}
               className="max-w-full text-[14px] leading-[1.6] text-ink-muted md:max-w-[520px]"
             >
-              I am Anant Pandey, a Robotics Engineer based in Bangalore. I
-              started tinkering with Arduinos before I knew what a robot was,
-              and never really stopped.
+              I'm Anant Pandey, a Robotics Engineer based in Bangalore.
             </motion.p>
 
             <motion.p
@@ -102,11 +99,7 @@ export default function AboutSection() {
               transition={{ delay: 0.4, duration: 0.6, ease: easing }}
               className="max-w-full text-[14px] leading-[1.6] text-ink-muted md:max-w-[520px]"
             >
-              Today I work at the intersection of manipulation, robot learning
-              and simulation, building systems that watch, learn and move. Most
-              recently at OpenBot, where I cut system cost by 90% building a
-              leader arm from scratch and trained imitation learning policies
-              using LeRobot and MoveIt2.
+              From a cardboard robotic hand in my first year of college to a servo-less leader arm that cut system cost by 90% at OpenBot, I've spent my career at the intersection of manipulation, robot learning, and simulation building systems that watch, learn, and move. There, I also trained imitation learning policies using LeRobot and MoveIt2. Before that, freelance work took me through UR5e simulation environments, an RRT-based maze solver, and a 5-DOF pick-and-place stack built with MoveIt Task Constructor.
             </motion.p>
 
             <motion.p
@@ -116,23 +109,10 @@ export default function AboutSection() {
               transition={{ delay: 0.5, duration: 0.6, ease: easing }}
               className="max-w-full text-[14px] leading-[1.6] text-ink-muted md:max-w-[520px]"
             >
-              I have worked across ROS2, MuJoCo, Isaac Sim, MoveIt2 and
-              Stable-Baselines3. From training PPO policies in simulation to
-              deploying manipulation stacks on real hardware. If it moves and
-              thinks, I probably want to build one.
+              I've worked across ROS2, MuJoCo, Isaac Sim, MoveIt2, and Stable-Baselines3 from training PPO policies in simulation to deploying manipulation stacks on real hardware. If it moves and thinks, I probably want to build one.
             </motion.p>
 
             {/* Closing line */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6, duration: 0.6, ease: easing }}
-              className="border-l border-hairline pl-[14px] text-[13px] italic text-ink-faint"
-            >
-              Previously at Deloitte USI · B.Tech EIE, Manipal Institute of
-              Technology
-            </motion.p>
 
             {/* Availability badge */}
             <motion.div
@@ -142,10 +122,10 @@ export default function AboutSection() {
               transition={{ delay: 0.7, duration: 0.6, ease: easing }}
               className="flex items-center gap-2"
             >
-              <span className="inline-block h-[6px] w-[6px] rounded-full bg-[#22c55e]" />
-              <span className="text-[12px] text-[#555555]">
+              {/* <span className="inline-block h-[6px] w-[6px] rounded-full bg-[#22c55e]" /> */}
+              {/* <span className="text-[12px] text-[#555555]">
                 Open to freelance and full time opportunities · Bangalore, India
-              </span>
+              </span> */}
             </motion.div>
           </div>
 

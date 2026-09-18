@@ -519,7 +519,7 @@ export default function HoverImageReveal({
           }}
         >
         {list.map((item, i) => {
-          const bridge = item.image?.alt ?? item.description;
+          const bridge = item.description ?? item.image?.alt;
 
           return (
             <motion.div
@@ -539,7 +539,7 @@ export default function HoverImageReveal({
                 width: "75vw",
                 minWidth: "240px",
                 maxWidth: "300px",
-                height: "420px",
+                minHeight: "420px",
                 borderRadius: "14px",
                 background: "#141414",
                 border: "0.5px solid #1e1e1e",
@@ -595,7 +595,7 @@ export default function HoverImageReveal({
                 </span>
 
                 {bridge && (
-                  <span className="line-clamp-2 text-[13px] leading-[1.55] text-ink-muted">
+                  <span className="text-[13px] leading-[1.55] text-ink-muted">
                     {bridge}
                   </span>
                 )}

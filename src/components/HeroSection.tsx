@@ -144,15 +144,6 @@ export default function HeroSection() {
             className="relative block text-[clamp(78px,20vw,108px)] font-black tracking-[-4px] text-ink md:text-[clamp(100px,11.5vw,165px)] md:tracking-[-6px]"
           >
             Anant
-            <motion.span
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.4, ease: EASE }}
-              className="inline-block text-[0.5em] font-black text-accent-blue"
-              style={{ verticalAlign: "super" }}
-            >
-              *
-            </motion.span>
           </motion.span>
         </h1>
         </div>
@@ -179,7 +170,7 @@ export default function HeroSection() {
           transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
           className="max-w-[650px] text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted"
         >
-          Robotics engineer specializing in manipulation, simulation, and robot learning. I build systems that go from a rough idea in MuJoCo or Isaac Sim to a working demo on real hardware — using ROS 2, MoveIt 2, and imitation/RL pipelines. Currently looking for my next robotics role in Bangalore.
+          Robotics Engineer specializing in manipulation, simulation, and robot learning. I turn robotic concepts into functional systems, integrating simulation, motion planning, and learning based control across both virtual environments and real world hardware. Currently looking for my next robotics role in Bangalore.
         </motion.p>
 
         <motion.div

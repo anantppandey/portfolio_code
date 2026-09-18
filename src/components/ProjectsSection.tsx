@@ -45,7 +45,7 @@ const projects = [
     status: "Robotics",
     tagline: "Custom leader arm designed for intuitive robotic teleoperation",
     description:
-      "Designed and built a servoless leader arm intended to provide physical input for robotic arm teleoperation, focusing on mechanical design, joint motion and operator-driven pose control.",
+      "Designed and built a servoless leader arm for robotic arm teleoperation, focusing on mechanical design, joint motion, and operator-driven pose control. Integrated AS5600 magnetic encoders with an ESP32 to accurately capture joint positions and enable real-time transmission of operator input.",
     tech: ["Robotics", "Mechanical Design", "3D Printing", "Teleoperation", "CAD"],
     github: "",
     initials: "SL",
@@ -56,7 +56,7 @@ const projects = [
     status: "Robotics",
     tagline: "Trajectory following and real-time teleoperation for the UR5e",
     description:
-      "Trajectory following and teleoperation pipeline for the UR5e robotic arm, connecting commanded trajectories and operator input to the robot for controlled motion execution.",
+      "Developed a trajectory-following and teleoperation pipeline for the UR5e robotic arm, connecting commanded trajectories and operator input to the robot for controlled motion execution. Integrated a wrist-mounted camera for capturing visual data during operation, enabling dataset generation for robotics applications.",
     tech: ["UR5e", "ROS2", "Python", "Trajectory Following", "Teleoperation"],
     github: "",
     initials: "UR",
@@ -89,7 +89,7 @@ const projects = [
     status: "Design",
     tagline: "Custom-designed 3D printed wallet",
     description:
-      "Designed and 3D printed a custom wallet, developing the geometry and physical form as a compact functional object.",
+      "Designed a fully 3D-printed mechanical card wallet and iterated through rapid prototyping to develop its mechanisms. The design incorporates a gear-driven card ejection system, custom optical illusion mechanism, and compact mechanical architecture, with the entire assembly designed for 3D printing and easy iteration.",
     tech: ["Fusion 360", "3D Printing", "CAD", "Product Design"],
     github: "",
     initials: "CW",
@@ -187,7 +187,7 @@ export default function ProjectsSection() {
         `item${i + 1}`,
         {
           text: p.title,
-          image: { src: p.videoSrc, alt: p.tagline },
+          image: { src: p.videoSrc, alt: p.description },
           description: p.description,
           status: p.status,
           tech: p.tech,
@@ -337,34 +337,32 @@ export default function ProjectsSection() {
                     width: "100%",
                     height: "100%",
                     background: "#141414",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "column",
-                    gap: "12px",
                   }}
                 >
-                  <div
-                    className="project-overlay-initials"
-                    style={{
-                      fontSize: "64px",
-                      fontWeight: 500,
-                      color: "#1e1e1e",
-                      letterSpacing: "-3px",
-                    }}
-                  >
-                    {selectedProject.initials}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#222",
-                      letterSpacing: "0.2em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Preview soon
-                  </div>
+                  {/\.(mp4|webm)$/i.test(selectedProject.videoSrc) ? (
+                    <video
+                      src={selectedProject.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={selectedProject.videoSrc}
+                      alt={selectedProject.tagline}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
                 </div>
                 <div
                   style={{
@@ -441,18 +439,33 @@ export default function ProjectsSection() {
                   {selectedProject.title}
                 </h2>
 
-                <p
-                  className="project-overlay-desc"
-                  style={{
-                    fontSize: "14px",
-                    color: "#666666",
-                    lineHeight: 1.6,
-                    margin: "0 0 32px 0",
-                    maxWidth: "380px",
-                  }}
-                >
-                  {selectedProject.description}
-                </p>
+                {isMobile ? (
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#666666",
+                      lineHeight: 1.6,
+                      margin: "0 0 32px 0",
+                      maxWidth: "380px",
+                      display: "block",
+                    }}
+                  >
+                    {selectedProject.description}
+                  </div>
+                ) : (
+                  <p
+                    className="project-overlay-desc"
+                    style={{
+                      fontSize: "14px",
+                      color: "#666666",
+                      lineHeight: 1.6,
+                      margin: "0 0 32px 0",
+                      maxWidth: "380px",
+                    }}
+                  >
+                    {selectedProject.description}
+                  </p>
+                )}
 
                 <p
                   style={{
