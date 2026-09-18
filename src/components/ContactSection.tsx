@@ -112,7 +112,7 @@ export default function ContactSection() {
           transition={{ duration: 0.6, ease: easing }}
           className="mb-12 text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted"
         >
-          04 — Contact
+          Contact
         </motion.p>
 
         {/* Heading */}

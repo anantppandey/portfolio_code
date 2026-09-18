@@ -232,7 +232,7 @@ export default function ProjectsSection() {
             marginBottom: "10px",
           }}
         >
-          03 — Projects
+          Projects
         </p>
         <h2
           style={{

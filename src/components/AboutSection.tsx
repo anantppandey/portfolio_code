@@ -38,7 +38,7 @@ export default function AboutSection() {
           transition={{ duration: 0.6, ease: easing }}
           className="mb-12 text-[11px] uppercase tracking-[0.18em] text-ink-muted"
         >
-          03 — About
+          About
         </motion.p>
 
         <div className="about-grid flex flex-col gap-[64px] lg:flex-row">
