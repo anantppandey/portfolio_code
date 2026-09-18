@@ -200,24 +200,8 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6, ease: EASE }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "#ffffff",
-                color: "#000000",
-                borderRadius: "100px",
-                padding: "10px 22px",
-                fontSize: "13px",
-                fontWeight: 500,
-                letterSpacing: "-0.2px",
-                textDecoration: "none",
-                cursor: "none",
-                border: "none",
-                transition: "background 0.2s, color 0.2s",
-                fontFamily: "Inter",
-                whiteSpace: "nowrap",
-              }}
+              className="inline-flex min-w-[170px] items-center justify-center gap-2 whitespace-nowrap rounded-full border-[0.5px] border-transparent bg-ink px-[22px] py-[10px] text-[13px] font-medium tracking-[-0.2px] text-canvas no-underline transition-colors duration-200"
+              style={{ cursor: "none" }}
             >
               <ResumeIcon />
               View my resume
@@ -234,24 +218,8 @@ export default function HeroSection() {
                   behavior: "smooth",
                 });
               }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "transparent",
-                color: "#ffffff",
-                borderRadius: "100px",
-                padding: "10px 22px",
-                fontSize: "13px",
-                fontWeight: 500,
-                letterSpacing: "-0.2px",
-                textDecoration: "none",
-                cursor: "none",
-                border: "0.5px solid #262626",
-                transition: "border-color 0.2s, color 0.2s",
-                fontFamily: "Inter",
-                whiteSpace: "nowrap",
-              }}
+              className="inline-flex min-w-[170px] items-center justify-center gap-2 whitespace-nowrap rounded-full border-[0.5px] border-hairline px-[22px] py-[10px] text-[13px] font-medium tracking-[-0.2px] text-ink no-underline transition-colors duration-200"
+              style={{ cursor: "none" }}
             >
               <ChatIcon />
               Have a chat
