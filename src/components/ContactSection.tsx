@@ -123,7 +123,7 @@ export default function ContactSection() {
           transition={{ delay: 0.15, duration: 0.7, ease: easing }}
           className="mb-4 text-center text-[clamp(32px,8vw,56px)] font-medium leading-[1.0] tracking-[-3px] text-ink md:text-[clamp(42px,7vw,80px)] md:tracking-[-4px]"
         >
-          Open to work.
+          Open to work<span className="text-accent-blue">.</span>
           <br />
           Open to ideas<span className="text-accent-blue">.</span>
         </motion.h2>
