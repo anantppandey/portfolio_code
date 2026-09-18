@@ -171,13 +171,10 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
-          className="max-w-full text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted md:max-w-lg"
+          className="max-w-full text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted md:max-w-[420px]"
         >
-          Robotics engineer specializing in manipulation, simulation, and robot
-          learning. I build systems that go from a rough idea in MuJoCo or Isaac
-          Sim to a working demo on real hardware, using ROS 2, MoveIt 2, and
-          imitation and RL pipelines. Currently looking for my next robotics
-          role in Bangalore.
+          I build robots that learn: from MuJoCo sim to real hardware, using
+          ROS2, MoveIt2 and RL pipelines. Open to robotics roles in Bangalore.
         </motion.p>
 
         <motion.div
