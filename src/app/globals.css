@@ -413,9 +413,35 @@ footer {
     padding-bottom: 64px !important;
   }
 
+  .hero-section {
+    min-height: unset !important;
+    height: auto !important;
+    padding-bottom: 48px !important;
+  }
+
   .hero-heading-block {
-    padding-left: 15% !important;
     width: 100% !important;
+    transform: none !important;
+    padding-left: 0 !important;
+    max-width: none !important;
+  }
+
+  .hero-heading-block h1 {
+    font-size: clamp(52px, 14vw, 80px) !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    letter-spacing: -2px !important;
+    width: auto !important;
+  }
+
+  .hero-heading-block h1 span.im-text {
+    font-size: inherit !important;
+  }
+
+  .hero-bottom-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
   }
 }
 
