@@ -421,9 +421,9 @@ footer {
 @media (min-width: 768px) {
   .hero-content-wrapper {
     padding-left: 15vw !important;
-    padding-right: 0 !important;
+    padding-right: unset !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
-    max-width: 520px !important;
+    max-width: none !important;
   }
 }

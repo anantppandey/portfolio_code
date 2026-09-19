@@ -117,10 +117,9 @@ export default function HeroSection() {
         className="hero-content-wrapper relative z-[2] flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center py-10 text-left px-6 md:px-8"
         style={{
           paddingLeft: "15vw",
-          paddingRight: "0",
           marginLeft: "0",
           marginRight: "0",
-          maxWidth: "520px",
+          maxWidth: "none",
         }}
       >
         <div className="w-full max-w-[650px] text-left">
