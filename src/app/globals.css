@@ -352,10 +352,10 @@ footer {
      while the drawing shrinks. Scale from the top and pull the unused
      scaled-away height back out from underneath it. */
   .pie-container {
-    width: 85vw !important;
-    height: 85vw !important;
-    max-width: 360px !important;
-    max-height: 360px !important;
+    width: 78vw !important;
+    height: 78vw !important;
+    max-width: 320px !important;
+    max-height: 320px !important;
     transform: none !important;
     -webkit-transform: none !important;
     margin: 0 auto !important;
@@ -365,13 +365,15 @@ footer {
   }
 
   .specializations-section {
+    width: 100vw !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     overflow: hidden !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
-    width: 100% !important;
+    box-sizing: border-box !important;
     min-height: auto !important;
     height: auto !important;
   }
