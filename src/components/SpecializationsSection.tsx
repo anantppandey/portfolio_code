@@ -438,7 +438,6 @@ function SegmentMedia({
   registerVideo,
   label,
   config,
-  clipPolygon,
 }: {
   active: boolean;
   thumbnail: string;
@@ -449,11 +448,6 @@ function SegmentMedia({
   registerVideo: (el: HTMLVideoElement | null) => void;
   label: string;
   config: MediaConfig;
-  /**
-   * Set on iOS only. The media clips itself here instead of hanging off the
-   * foreignObject's clipPath, which is the pairing iOS refuses to paint.
-   */
-  clipPolygon?: string;
 }) {
   const playable = isPlayableVideo(videoSrc);
 
@@ -500,20 +494,20 @@ function SegmentMedia({
     <div
       style={{
         position: "relative",
-        width: `${PIE_SIZE}px`,
-        height: `${PIE_SIZE}px`,
+        /*
+          Percent, not the 700px it used to be. Inside the foreignObject this
+          is the same number, since that box is exactly PIE_SIZE across, and
+          out in the HTML layer iOS uses it it becomes the container's own
+          size. Every transform on the layers below is already a percentage or
+          a scale, so the whole component is size independent.
+        */
+        width: "100%",
+        height: "100%",
         overflow: "hidden",
         // Shows through if an asset fails, so a slice is never empty.
         background: "rgba(0,10,25,0.85)",
         // Same reason as the layers below: the slice path owns the tap.
         pointerEvents: "none",
-        ...(clipPolygon
-          ? {
-              clipPath: clipPolygon,
-              WebkitClipPath: clipPolygon,
-              transition: "clip-path 0.35s ease, -webkit-clip-path 0.35s ease",
-            }
-          : null),
       }}
     >
       {/* Layer 1: thumbnail, dimmed at rest and faded out under the motion */}
@@ -720,8 +714,16 @@ const PIE_LAYOUT_CSS = `
  * up exactly at any size.
  */
 
-/** describeArc's donut slice, written as a CSS polygon. */
-function slicePolygon(
+/** A viewBox unit as a percentage of the pie box, which is PIE_SIZE across. */
+const pct = (v: number) => (v / PIE_SIZE) * 100;
+
+/**
+ * describeArc's donut slice, written as a CSS polygon in percentages. Percent
+ * rather than px is the whole point: the layer this clips is sized to the
+ * container, so the shape tracks whatever the pie is currently drawn at
+ * instead of being pinned to the 700 unit design space.
+ */
+function slicePolygonPct(
   outerR: number,
   innerR: number,
   startDeg: number,
@@ -735,21 +737,30 @@ function slicePolygon(
 
   for (let i = 0; i <= steps; i++) {
     const p = polar(outerR, start + (end - start) * (i / steps));
-    points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
+    points.push(`${pct(p.x).toFixed(3)}% ${pct(p.y).toFixed(3)}%`);
   }
   for (let i = steps; i >= 0; i--) {
     const p = polar(innerR, start + (end - start) * (i / steps));
-    points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
+    points.push(`${pct(p.x).toFixed(3)}% ${pct(p.y).toFixed(3)}%`);
   }
 
   return `polygon(${points.join(", ")})`;
 }
 
 /**
- * The Hardware disc's clip. The SVG version springs its radius; a CSS circle
- * cannot spring, so it eases, which reads the same at this size.
+ * The Hardware disc's clip. On a square box a percentage circle radius is a
+ * percentage of the width, so this lands on the same circle the SVG clipPath
+ * draws. That version springs its radius and a CSS circle cannot, so it eases
+ * instead, which reads the same at this size.
  */
-const hardwareCircleClip = (r: number) => `circle(${r}px at ${CX}px ${CY}px)`;
+const hardwareCirclePct = (r: number) =>
+  `circle(${pct(r).toFixed(3)}% at 50% 50%)`;
+
+/** How far a slice slides on open, as a percentage of the box. */
+const shiftPct = (deg: number) => ({
+  x: pct(Math.cos(toRad(deg)) * HOVER_SHIFT),
+  y: pct(Math.sin(toRad(deg)) * HOVER_SHIFT),
+});
 
 
 // ---- section ------------------------------------------------------------------
@@ -921,8 +932,18 @@ export default function SpecializationsSection() {
     };
   }, [selectedProject]);
 
-  /** iOS clips the slice media in CSS; every other engine uses the clipPath. */
-  const useCssMediaClip = isIOS && isMobile;
+  /**
+   * iOS draws the slice artwork from an HTML layer under the pie instead of
+   * from a foreignObject inside it. Safari does not put foreignObject content
+   * through the viewBox transform: the vector half of the pie scaled from 700
+   * units down to the 300px box correctly while the media stayed at 1px per
+   * unit, so the artwork came out 2.33x oversized and hanging off the screen
+   * while the labels and slices around it were the right size. Nothing but
+   * taking the media out of the SVG fixes that, so on iOS it moves to a
+   * sibling layer sized to the container and clipped in percentages, and the
+   * shapes it used to sit behind open up to let it read through.
+   */
+  const useHtmlMedia = isIOS && isMobile;
 
   return (
     <section
@@ -944,13 +965,105 @@ export default function SpecializationsSection() {
           marginTop: -40,
         }}
       >
+        {/*
+          iOS only. The same SegmentMedia the foreignObjects carry everywhere
+          else, in a plain HTML layer under the SVG, each piece cut to its
+          slice with a percentage clip-path so it scales with the box. The
+          pointer never lands here: the slice paths above own every tap.
+        */}
+        {useHtmlMedia && (
+          <div
+            className="ios-media-layer"
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 1,
+              pointerEvents: "none",
+            }}
+          >
+            {segments.map((segment) => {
+              const open = activeSegment === segment.id;
+              const shift = shiftPct(midAngle(segment));
+              const clip = slicePolygonPct(
+                HOVER_OUTER_R,
+                INNER_R,
+                segment.startAngle,
+                segment.endAngle,
+              );
+              return (
+                <div
+                  key={segment.id}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    clipPath: clip,
+                    WebkitClipPath: clip,
+                    // Rides the same slide the SVG group makes when it opens.
+                    transform: open
+                      ? `translate(${shift.x.toFixed(3)}%, ${shift.y.toFixed(3)}%)`
+                      : "none",
+                    transition: "transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  <SegmentMedia
+                    active={open}
+                    thumbnail={segment.thumbnail}
+                    videoSrc={segment.videoSrc}
+                    origin={mediaOriginFor(midAngle(segment))}
+                    label={segment.title}
+                    registerVideo={(el) => {
+                      videoRefs.current[segment.id] = el;
+                    }}
+                    config={
+                      MEDIA_CONFIG[segment.id as keyof typeof MEDIA_CONFIG]
+                    }
+                  />
+                </div>
+              );
+            })}
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                clipPath: hardwareCirclePct(
+                  activeSegment === centerData.id
+                    ? HARDWARE_HOVER_R
+                    : HARDWARE_R,
+                ),
+                WebkitClipPath: hardwareCirclePct(
+                  activeSegment === centerData.id
+                    ? HARDWARE_HOVER_R
+                    : HARDWARE_R,
+                ),
+                transition:
+                  "clip-path 0.35s ease, -webkit-clip-path 0.35s ease",
+              }}
+            >
+              <SegmentMedia
+                active={activeSegment === centerData.id}
+                thumbnail={centerData.thumbnail}
+                videoSrc={centerData.videoSrc}
+                origin="50% 50%"
+                label={centerData.title}
+                registerVideo={(el) => {
+                  videoRefs.current[centerData.id] = el;
+                }}
+                config={MEDIA_CONFIG.hardware}
+              />
+            </div>
+          </div>
+        )}
+
         <svg
           width="100%"
           height="100%"
           viewBox="0 0 700 700"
           preserveAspectRatio="xMidYMid meet"
           className="absolute inset-0"
-          style={{ overflow: "visible" }}
+          /* Above the iOS media layer, so the strokes, labels and disc that
+             used to paint over the foreignObjects still paint over it. */
+          style={{ overflow: "visible", zIndex: 2 }}
         >
           <style>{PIE_KEYFRAMES}</style>
           <defs>
@@ -1111,7 +1224,14 @@ export default function SpecializationsSection() {
                   segment.startAngle,
                   segment.endAngle,
                 )}
-                fill="#0d1a2a"
+                /*
+                  The fill is a backing the media covers, so on iOS, where the
+                  media sits in a layer under the whole SVG, it has to become
+                  a hole for that layer to read through. Transparent rather
+                  than none: an unpainted fill has no interior to hit-test and
+                  the slice would stop answering taps.
+                */
+                fill={useHtmlMedia ? "rgba(0,0,0,0)" : "#0d1a2a"}
                 stroke="rgba(0,153,255,0.15)"
                 strokeWidth={1}
                 initial={{
@@ -1121,7 +1241,7 @@ export default function SpecializationsSection() {
                     segment.startAngle,
                     segment.endAngle,
                   ),
-                  fill: "#0d1a2a",
+                  fill: useHtmlMedia ? "rgba(0,0,0,0)" : "#0d1a2a",
                   stroke: "rgba(0,153,255,0.15)",
                   strokeWidth: 1,
                   opacity: 1,
@@ -1133,11 +1253,13 @@ export default function SpecializationsSection() {
                     segment.startAngle,
                     segment.endAngle,
                   ),
-                  fill: activeSegment === segment.id
-                    ? "#0a2040"
-                    : activeSegment !== null && activeSegment !== segment.id
-                      ? "#080e18"
-                      : "#0d1a2a",
+                  fill: useHtmlMedia
+                    ? "rgba(0,0,0,0)"
+                    : activeSegment === segment.id
+                      ? "#0a2040"
+                      : activeSegment !== null && activeSegment !== segment.id
+                        ? "#080e18"
+                        : "#0d1a2a",
                   stroke: activeSegment === segment.id
                     ? "rgba(0,153,255,0.8)"
                     : activeSegment !== null && activeSegment !== segment.id
@@ -1153,19 +1275,33 @@ export default function SpecializationsSection() {
                 filter={
                   activeSegment === segment.id ? "url(#segment-glow)" : undefined
                 }
-                style={{ cursor: "none", pointerEvents: "all" }}
+                style={{
+                  cursor: "none",
+                  pointerEvents: "all",
+                  /*
+                    framer owns fill through the animate map above and will
+                    not give it back once it has driven it: isIOS lands a tick
+                    after mount, so the first paint sets the solid backing and
+                    the change to transparent afterwards was simply ignored.
+                    A CSS fill outranks the presentation attribute framer
+                    writes, so the hole is opened here instead of fought for
+                    up there.
+                  */
+                  ...(useHtmlMedia ? { fill: "rgba(0,0,0,0)" } : null),
+                }}
               />
 
               {/* Media inside the slice. Every layer in it passes the pointer
-                  straight through to the group, which owns the tap. */}
+                  straight through to the group, which owns the tap. iOS gets
+                  none of this: it draws the same media from the HTML layer
+                  under the pie instead, for the reason on useHtmlMedia. */}
+              {useHtmlMedia ? null : (
               <foreignObject
                 x={0}
                 y={0}
                 width={PIE_SIZE}
                 height={PIE_SIZE}
-                clipPath={
-                  useCssMediaClip ? undefined : `url(#clip-${segment.id})`
-                }
+                clipPath={`url(#clip-${segment.id})`}
                 style={{ pointerEvents: "none" }}
               >
                 <SegmentMedia
@@ -1178,18 +1314,9 @@ export default function SpecializationsSection() {
                     videoRefs.current[segment.id] = el;
                   }}
                   config={MEDIA_CONFIG[segment.id as keyof typeof MEDIA_CONFIG]}
-                  clipPolygon={
-                    useCssMediaClip
-                      ? slicePolygon(
-                          HOVER_OUTER_R,
-                          INNER_R,
-                          segment.startAngle,
-                          segment.endAngle,
-                        )
-                      : undefined
-                  }
                 />
               </foreignObject>
+              )}
             </motion.g>
           ))}
 
@@ -1231,7 +1358,8 @@ export default function SpecializationsSection() {
                     : HARDWARE_R,
               }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              fill="#090909"
+              /* Same hole the slices open on iOS, for the same reason. */
+              fill={useHtmlMedia ? "rgba(0,0,0,0)" : "#090909"}
               stroke={
                 activeSegment === centerData.id
                   ? "rgba(0,153,255,0.6)"
@@ -1247,12 +1375,13 @@ export default function SpecializationsSection() {
             />
 
             {/* Media inside the disc, beneath the rings and the title text. */}
+            {useHtmlMedia ? null : (
             <foreignObject
               x={0}
               y={0}
               width={PIE_SIZE}
               height={PIE_SIZE}
-              clipPath={useCssMediaClip ? undefined : "url(#clip-hardware)"}
+              clipPath="url(#clip-hardware)"
               style={{ pointerEvents: "none" }}
             >
               <SegmentMedia
@@ -1265,17 +1394,9 @@ export default function SpecializationsSection() {
                   videoRefs.current[centerData.id] = el;
                 }}
                 config={MEDIA_CONFIG.hardware}
-                clipPolygon={
-                  useCssMediaClip
-                    ? hardwareCircleClip(
-                        activeSegment === centerData.id
-                          ? HARDWARE_HOVER_R
-                          : HARDWARE_R,
-                      )
-                    : undefined
-                }
               />
             </foreignObject>
+            )}
 
             <circle
               cx={CX}
