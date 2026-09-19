@@ -119,7 +119,7 @@ export default function HeroSection() {
           paddingLeft: "clamp(40px, 6vw, 120px)",
           paddingRight: "clamp(40px, 6vw, 120px)",
           maxWidth: "640px",
-          transform: "translateX(-25%)",
+          transform: "translateX(-35%)",
         }}
       >
         <div className="w-full max-w-[650px] text-left">
