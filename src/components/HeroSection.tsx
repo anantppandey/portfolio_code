@@ -158,7 +158,7 @@ export default function HeroSection() {
         </div>
 
         {/* Centered content below the name */}
-        <div className="hero-bottom-section flex w-full max-w-[650px] flex-col items-center text-center md:translate-x-[20%]" style={{ maxWidth: "480px" }}>
+        <div className="hero-bottom-section flex w-full max-w-[650px] flex-col items-center text-center" style={{ maxWidth: "480px" }}>
         {/* Separator dividing the hero into halves */}
         <motion.div
           aria-hidden="true"
