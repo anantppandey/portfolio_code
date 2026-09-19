@@ -681,6 +681,123 @@ const PIE_LAYOUT_CSS = `
   }
 `;
 
+// ---- iOS clip-path pie --------------------------------------------------------
+
+/*
+ * iOS Safari will not render the media inside the SVG pie: the slices are
+ * foreignObject content behind an SVG clipPath, and that combination drops out
+ * on iOS while it paints fine everywhere else. iPhones therefore get a second
+ * pie built entirely from HTML - one absolutely positioned div per slice, cut
+ * to a donut-slice shape by a CSS clip-path polygon, with the img and video
+ * clipped by the parent. No SVG, no foreignObject, nothing iOS mishandles.
+ *
+ * Desktop and Android keep the SVG pie below, untouched.
+ */
+
+/** Fixed box rather than a viewport unit, so it fits every phone down to 320. */
+const IOS_PIE = 300;
+const IOS_CX = 150;
+const IOS_CY = 150;
+const IOS_OUTER = 150;
+/** Matches the Hardware disc, which plugs the hole in the middle. */
+const IOS_INNER = 55;
+/** Seam on each side of a slice, the same gap the SVG pie uses. */
+const IOS_GAP = 1.5;
+/**
+ * Labels and the Know more pill both ride inside the donut band, the label out
+ * near the rim and the pill below it. There is only about 37px of room beside
+ * a 300px pie on a 375px phone, which is nowhere near enough for horizontal
+ * text outside the rim - that is why the SVG pie curves its labels along the
+ * arc. Flat HTML text cannot curve, so it goes over the artwork instead and
+ * carries a shadow to stay legible.
+ */
+const IOS_LABEL_R = 140;
+const IOS_PILL_R = 100;
+/** Half the width each element is allowed, used to keep both inside the box. */
+const IOS_LABEL_HALF = 70;
+const IOS_PILL_HALF = 40;
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), max);
+
+function iosPolar(cx: number, cy: number, r: number, deg: number) {
+  return { x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) };
+}
+
+/**
+ * Donut slice as a clip-path polygon: the outer arc walked forwards, the inner
+ * arc walked back. 24 steps per arc is smooth at this size and keeps the
+ * property short enough to stay cheap to re-evaluate.
+ */
+function buildSegmentPolygon(
+  startDeg: number,
+  endDeg: number,
+  cx: number,
+  cy: number,
+  outerR: number,
+  innerR: number,
+  steps = 24,
+): string {
+  const points: string[] = [];
+
+  for (let i = 0; i <= steps; i++) {
+    const deg = startDeg + (endDeg - startDeg) * (i / steps);
+    const p = iosPolar(cx, cy, outerR, deg);
+    points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
+  }
+
+  for (let i = steps; i >= 0; i--) {
+    const deg = startDeg + (endDeg - startDeg) * (i / steps);
+    const p = iosPolar(cx, cy, innerR, deg);
+    points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
+  }
+
+  return `polygon(${points.join(", ")})`;
+}
+
+/** The same three slices, narrowed by the seam and pre-clipped. */
+const IOS_SEGMENTS = segments.map((segment) => {
+  const startDeg = segment.startAngle + IOS_GAP;
+  const endDeg = segment.endAngle - IOS_GAP;
+  const midDeg = (startDeg + endDeg) / 2;
+  const label = iosPolar(IOS_CX, IOS_CY, IOS_LABEL_R, midDeg);
+  const pill = iosPolar(IOS_CX, IOS_CY, IOS_PILL_R, midDeg);
+  return {
+    ...segment,
+    clipPath: buildSegmentPolygon(
+      startDeg,
+      endDeg,
+      IOS_CX,
+      IOS_CY,
+      IOS_OUTER,
+      IOS_INNER,
+    ),
+    labelPos: {
+      x: clamp(label.x, IOS_LABEL_HALF, IOS_PIE - IOS_LABEL_HALF),
+      y: label.y,
+    },
+    pillPos: {
+      x: clamp(pill.x, IOS_PILL_HALF, IOS_PIE - IOS_PILL_HALF),
+      y: pill.y,
+    },
+  };
+});
+
+/**
+ * The mobile rules in globals.css push #specializations to 136px of top
+ * padding to clear the caption above the SVG pie. The iOS pie is shorter and
+ * sits lower in its own box, so it takes the tighter spacing back. Written as
+ * id + class so it outranks the !important rule it is overriding.
+ */
+const IOS_PIE_CSS = `
+  @media (max-width: 767px) {
+    #specializations.ios-pie-section {
+      padding-top: 96px !important;
+      padding-bottom: 56px !important;
+    }
+  }
+`;
+
 // ---- section ------------------------------------------------------------------
 
 export default function SpecializationsSection() {
@@ -692,6 +809,13 @@ export default function SpecializationsSection() {
   );
   /** Starts false so the server render matches; the real value lands after mount. */
   const [isMobile, setIsMobile] = useState(false);
+  /**
+   * iOS Safari only, and for the same reason: it is the one engine that drops
+   * the SVG pie's media. Resolved after mount so the server render still
+   * matches, and never from the viewport, since this is an engine bug rather
+   * than a size question.
+   */
+  const [isIOS, setIsIOS] = useState(false);
   /** One entry per slice plus the Hardware disc, keyed by segment id. */
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   /** Hover drives the expand on desktop, tap drives it on mobile. */
@@ -747,6 +871,16 @@ export default function SpecializationsSection() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const detect = () => {
+      const ua = window.navigator.userAgent;
+      // iPadOS reports itself as a Mac, so it is caught by the touch check.
+      const iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+      setIsIOS(/iPad|iPhone|iPod/.test(ua) || iPadOS);
+    };
+    detect();
   }, []);
 
   /*
@@ -833,18 +967,256 @@ export default function SpecializationsSection() {
     };
   }, [selectedProject]);
 
+  /** iOS phones get the HTML pie; every other engine keeps the SVG one. */
+  const useIosPie = isIOS && isMobile;
+
   return (
     <section
       id="specializations"
-      className="specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
+      className={`specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas${
+        useIosPie ? " ios-pie-section" : ""
+      }`}
       style={{ overflow: "hidden" }}
     >
       <style>{PIE_LAYOUT_CSS}</style>
+      {useIosPie && <style>{IOS_PIE_CSS}</style>}
 
       <p className="spec-heading absolute left-0 z-[5] w-full text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted" style={{ top: '23px' }}>
         Specializations
       </p>
 
+      {useIosPie ? (
+        <div
+          className="ios-pie relative z-[2] shrink-0"
+          style={{ width: IOS_PIE, height: IOS_PIE }}
+        >
+          {/* Outer ring decoration */}
+          <div
+            style={{
+              position: "absolute",
+              left: -8,
+              top: -8,
+              width: IOS_PIE + 16,
+              height: IOS_PIE + 16,
+              borderRadius: "50%",
+              border: "0.5px solid rgba(0,153,255,0.12)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+
+          {IOS_SEGMENTS.map((segment) => {
+            const isActive = tappedSegment === segment.id;
+            return (
+              <div
+                key={segment.id}
+                onClick={() =>
+                  setTappedSegment(isActive ? null : segment.id)
+                }
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  clipPath: segment.clipPath,
+                  WebkitClipPath: segment.clipPath,
+                  cursor: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  transition: "filter 0.3s ease",
+                  filter: isActive ? "brightness(1.3)" : "brightness(0.7)",
+                  overflow: "hidden",
+                  // Shows through if an asset fails, so a slice is never empty.
+                  background: "rgba(0,10,25,0.85)",
+                  zIndex: 1,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- local asset; next/image would need a config change */}
+                <img
+                  src={segment.thumbnail}
+                  alt={segment.title}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    pointerEvents: "none",
+                  }}
+                />
+
+                {/* Layered over the thumbnail rather than swapped with it, so
+                    a clip iOS cannot decode leaves the still in place instead
+                    of an empty slice. */}
+                {isActive && segment.videoSrc ? (
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    src={segment.videoSrc}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      pointerEvents: "none",
+                    }}
+                  />
+                ) : null}
+
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.35)",
+                    pointerEvents: "none",
+                  }}
+                />
+              </div>
+            );
+          })}
+
+          {/* Hardware disc, which is also the hole the slices are cut around */}
+          <div
+            onClick={() => setSelectedProject(centerData.primaryProject)}
+            style={{
+              position: "absolute",
+              left: IOS_CX - IOS_INNER,
+              top: IOS_CY - IOS_INNER,
+              width: IOS_INNER * 2,
+              height: IOS_INNER * 2,
+              borderRadius: "50%",
+              background: "#090909",
+              border: "1px solid rgba(0,153,255,0.3)",
+              boxShadow:
+                "0 0 20px rgba(0,153,255,0.2), inset 0 0 20px rgba(0,153,255,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 3,
+              cursor: "none",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 500,
+                color: "#ffffff",
+                fontFamily: "Inter",
+                letterSpacing: "-0.3px",
+              }}
+            >
+              {centerData.title}
+            </span>
+            <span
+              style={{
+                fontSize: "8px",
+                color: "#555555",
+                fontFamily: "Inter",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginTop: "2px",
+              }}
+            >
+              {centerData.subtitle}
+            </span>
+          </div>
+
+          {/* Slice labels, out near the rim */}
+          {IOS_SEGMENTS.map((segment) => (
+            <div
+              key={`label-${segment.id}`}
+              style={{
+                position: "absolute",
+                left: segment.labelPos.x,
+                top: segment.labelPos.y,
+                transform: "translate(-50%, -50%)",
+                textAlign: "center",
+                pointerEvents: "none",
+                zIndex: 4,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "9px",
+                  fontWeight: 600,
+                  color:
+                    tappedSegment === segment.id
+                      ? "#ffffff"
+                      : "rgba(255,255,255,0.6)",
+                  fontFamily: "Inter",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                }}
+              >
+                {segment.title}
+              </span>
+            </div>
+          ))}
+
+          {/* Know more, on the open slice only, inside the band below its label */}
+          {IOS_SEGMENTS.map((segment) => {
+            if (tappedSegment !== segment.id) return null;
+            return (
+              <div
+                key={`pill-${segment.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedProject(segment.primaryProject);
+                }}
+                style={{
+                  position: "absolute",
+                  left: segment.pillPos.x,
+                  top: segment.pillPos.y,
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 10,
+                  pointerEvents: "all",
+                  cursor: "none",
+                }}
+              >
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    background: "rgba(9,9,9,0.92)",
+                    border: "0.5px solid rgba(0,153,255,0.5)",
+                    borderRadius: "100px",
+                    padding: "5px 10px",
+                    fontSize: "9px",
+                    fontWeight: 500,
+                    color: "#ffffff",
+                    fontFamily: "Inter",
+                    whiteSpace: "nowrap",
+                    WebkitTapHighlightColor: "transparent",
+                    boxShadow: "0 0 12px rgba(0,153,255,0.2)",
+                  }}
+                >
+                  <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0099ff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                  Know more
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
@@ -1557,6 +1929,7 @@ export default function SpecializationsSection() {
           {/* Hardware "Know more" is now inside the SVG center disc. */}
         </div>
       </div>
+      )}
 
       {/* Full screen project overlay. Kept outside the scaled pie wrapper: a
           transformed ancestor would become the containing block for the fixed
