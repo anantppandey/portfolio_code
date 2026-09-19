@@ -438,6 +438,7 @@ function SegmentMedia({
   registerVideo,
   label,
   config,
+  clipPolygon,
 }: {
   active: boolean;
   thumbnail: string;
@@ -448,6 +449,11 @@ function SegmentMedia({
   registerVideo: (el: HTMLVideoElement | null) => void;
   label: string;
   config: MediaConfig;
+  /**
+   * Set on iOS only. The media clips itself here instead of hanging off the
+   * foreignObject's clipPath, which is the pairing iOS refuses to paint.
+   */
+  clipPolygon?: string;
 }) {
   const playable = isPlayableVideo(videoSrc);
 
@@ -501,6 +507,13 @@ function SegmentMedia({
         background: "rgba(0,10,25,0.85)",
         // Same reason as the layers below: the slice path owns the tap.
         pointerEvents: "none",
+        ...(clipPolygon
+          ? {
+              clipPath: clipPolygon,
+              WebkitClipPath: clipPolygon,
+              transition: "clip-path 0.35s ease, -webkit-clip-path 0.35s ease",
+            }
+          : null),
       }}
     >
       {/* Layer 1: thumbnail, dimmed at rest and faded out under the motion */}
@@ -681,77 +694,38 @@ const PIE_LAYOUT_CSS = `
   }
 `;
 
-// ---- iOS clip-path pie --------------------------------------------------------
+// ---- iOS media clipping -------------------------------------------------------
 
 /*
- * iOS Safari will not render the media inside the SVG pie: the slices are
- * foreignObject content behind an SVG clipPath, and that combination drops out
- * on iOS while it paints fine everywhere else. iPhones therefore get a second
- * pie built entirely from HTML - one absolutely positioned div per slice, cut
- * to a donut-slice shape by a CSS clip-path polygon, with the img and video
- * clipped by the parent. No SVG, no foreignObject, nothing iOS mishandles.
- *
- * Desktop and Android keep the SVG pie below, untouched.
+ * iOS is the one engine that drops a foreignObject sitting behind an SVG
+ * clipPath, which is what the slice artwork is. Everything else about the pie
+ * paints correctly there, so iOS gets the same pie as every other platform and
+ * only the clipping changes hands: the SVG clipPath attribute comes off the
+ * foreignObject and the media inside clips itself with an equivalent CSS
+ * clip-path. Inside a foreignObject one CSS pixel is one viewBox unit, so the
+ * numbers below are the same numbers describeArc draws with and the two line
+ * up exactly at any size.
  */
 
-/*
- * Geometry is the 340 design space at 0.9. At full size an expanded slice
- * reaches 190 and then slides 12 further, so its rim lands 202 from the
- * centre: a 404 circle on a phone 375 wide, and the section clips whatever
- * hangs past the edge. Scaled, the same shape and the same proportions come
- * to 364 across and clear a 375 screen with room on both sides.
- */
-const IOS_SCALE = 0.9;
-const IOS_PIE = 340 * IOS_SCALE;
-const IOS_CX = 170 * IOS_SCALE;
-const IOS_CY = 170 * IOS_SCALE;
-const IOS_OUTER_DEFAULT = 165 * IOS_SCALE;
-/** A tapped slice grows outward, the way a hovered one does on desktop. */
-const IOS_OUTER_ACTIVE = 190 * IOS_SCALE;
-/** Matches the Hardware disc, which plugs the hole in the middle. */
-const IOS_INNER = 62 * IOS_SCALE;
-/** Seam on each side of a slice, the same gap the SVG pie uses. */
-const IOS_GAP_DEG = 1.5;
-/** How far a tapped slice slides along its own mid-angle. */
-const IOS_SHIFT = 12 * IOS_SCALE;
-const IOS_LABEL_R = IOS_OUTER_DEFAULT + 18 * IOS_SCALE;
-const IOS_PILL_R = (IOS_INNER + IOS_OUTER_DEFAULT) * 0.6;
-/**
- * A clip-path cannot show anything outside its own element's box, so a slice
- * div that stopped at the container edge would come back with its expanded
- * arc sawn off flat. Each one overhangs by this much instead, which is why
- * the slice polygons are built around a centre of CX + PAD rather than CX.
- */
-const IOS_PAD = 28;
-
-function iosPolar(cx: number, cy: number, r: number, deg: number) {
-  return { x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) };
-}
-
-/**
- * Donut slice as a clip-path polygon: the outer arc walked forwards, the inner
- * arc walked back. Every slice uses the same step count so the browser can
- * interpolate between the resting and expanded shapes and animate the growth.
- */
-function buildSegmentClipPath(
+/** describeArc's donut slice, written as a CSS polygon. */
+function slicePolygon(
+  outerR: number,
+  innerR: number,
   startDeg: number,
   endDeg: number,
-  outerR: number,
+  gapDeg = 1.5,
   steps = 32,
 ): string {
-  const cx = IOS_CX + IOS_PAD;
-  const cy = IOS_CY + IOS_PAD;
+  const start = startDeg + gapDeg;
+  const end = endDeg - gapDeg;
   const points: string[] = [];
 
   for (let i = 0; i <= steps; i++) {
-    const deg = startDeg + (endDeg - startDeg) * (i / steps);
-    const p = iosPolar(cx, cy, outerR, deg);
+    const p = polar(outerR, start + (end - start) * (i / steps));
     points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
   }
-
   for (let i = steps; i >= 0; i--) {
-    const deg = startDeg + (endDeg - startDeg) * (i / steps);
-    const p = iosPolar(cx, cy, IOS_INNER, deg);
+    const p = polar(innerR, start + (end - start) * (i / steps));
     points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
   }
 
@@ -759,81 +733,11 @@ function buildSegmentClipPath(
 }
 
 /**
- * The same donut slice as a real SVG arc, for the outline that rides over the
- * artwork. Drawn in container space, not the padded slice space.
+ * The Hardware disc's clip. The SVG version springs its radius; a CSS circle
+ * cannot spring, so it eases, which reads the same at this size.
  */
-function iosArcPath(startDeg: number, endDeg: number, outerR: number) {
-  const oStart = iosPolar(IOS_CX, IOS_CY, outerR, startDeg);
-  const oEnd = iosPolar(IOS_CX, IOS_CY, outerR, endDeg);
-  const iStart = iosPolar(IOS_CX, IOS_CY, IOS_INNER, startDeg);
-  const iEnd = iosPolar(IOS_CX, IOS_CY, IOS_INNER, endDeg);
-  return [
-    `M ${oStart.x} ${oStart.y}`,
-    `A ${outerR} ${outerR} 0 0 1 ${oEnd.x} ${oEnd.y}`,
-    `L ${iEnd.x} ${iEnd.y}`,
-    `A ${IOS_INNER} ${IOS_INNER} 0 0 0 ${iStart.x} ${iStart.y}`,
-    "Z",
-  ].join(" ");
-}
+const hardwareCircleClip = (r: number) => `circle(${r}px at ${CX}px ${CY}px)`;
 
-/** The same three slices, narrowed by the seam. */
-const IOS_SEGMENTS = segments.map((segment) => {
-  const startDeg = segment.startAngle + IOS_GAP_DEG;
-  const endDeg = segment.endAngle - IOS_GAP_DEG;
-  const midDeg = (startDeg + endDeg) / 2;
-  return {
-    ...segment,
-    startDeg,
-    endDeg,
-    midDeg,
-    restClip: buildSegmentClipPath(startDeg, endDeg, IOS_OUTER_DEFAULT),
-    activeClip: buildSegmentClipPath(startDeg, endDeg, IOS_OUTER_ACTIVE),
-    shift: {
-      x: Math.cos(toRad(midDeg)) * IOS_SHIFT,
-      y: Math.sin(toRad(midDeg)) * IOS_SHIFT,
-    },
-    pill: iosPolar(IOS_CX, IOS_CY, IOS_PILL_R, midDeg),
-    /*
-     * Text on a clockwise arc reads upside down across the bottom of the
-     * circle, so the bottom slice gets its arc drawn the other way. The same
-     * rule the SVG pie's own labels use, which is what keeps the two matched.
-     */
-    flipLabel: midDeg > 0 && midDeg < 180,
-  };
-});
-
-/**
- * Two things live here. The padding overrides the 136px that globals.css puts
- * on #specializations for the SVG pie, which is the wrong clearance for this
- * one: the labels and an expanded slice reach about 29px above the container,
- * and 130 is what keeps that off the caption. Written as id + class so it
- * outranks the !important rule it replaces.
- *
- * The keyframes are here rather than in globals.css because this component is
- * the only file this change is allowed to touch, which is the same reason
- * PIE_KEYFRAMES above is inline.
- */
-const IOS_PIE_CSS = `
-  @media (max-width: 767px) {
-    #specializations.ios-pie-section {
-      padding-top: 130px !important;
-      padding-bottom: 56px !important;
-    }
-  }
-
-  @keyframes core-pulse {
-    0%, 100% {
-      box-shadow: 0 0 20px rgba(0,153,255,0.4),
-        0 0 40px rgba(0,153,255,0.15),
-        inset 0 0 20px rgba(0,153,255,0.15);
-    }
-    50% {
-      box-shadow: 0 0 30px rgba(0,153,255,0.7),
-        0 0 60px rgba(0,153,255,0.25),
-        inset 0 0 30px rgba(0,153,255,0.25);
-    }
-  }
-`;
 
 // ---- section ------------------------------------------------------------------
 
@@ -1004,354 +908,21 @@ export default function SpecializationsSection() {
     };
   }, [selectedProject]);
 
-  /** iOS phones get the HTML pie; every other engine keeps the SVG one. */
-  const useIosPie = isIOS && isMobile;
+  /** iOS clips the slice media in CSS; every other engine uses the clipPath. */
+  const useCssMediaClip = isIOS && isMobile;
 
   return (
     <section
       id="specializations"
-      className={`specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas${
-        useIosPie ? " ios-pie-section" : ""
-      }`}
+      className="specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
       style={{ overflow: "hidden" }}
     >
       <style>{PIE_LAYOUT_CSS}</style>
-      {useIosPie && <style>{IOS_PIE_CSS}</style>}
 
       <p className="spec-heading absolute left-0 z-[5] w-full text-center text-[11px] uppercase tracking-[0.18em] text-ink-muted" style={{ top: '23px' }}>
         Specializations
       </p>
 
-      {useIosPie ? (
-        <div
-          className="ios-pie relative z-[2] shrink-0"
-          style={{ width: IOS_PIE, height: IOS_PIE }}
-        >
-          {/* Decorative rings, the HTML answer to the two the SVG pie draws */}
-          <div
-            style={{
-              position: "absolute",
-              left: -10,
-              top: -10,
-              width: IOS_PIE + 20,
-              height: IOS_PIE + 20,
-              borderRadius: "50%",
-              border: "0.5px solid rgba(0,153,255,0.2)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: -20,
-              top: -20,
-              width: IOS_PIE + 40,
-              height: IOS_PIE + 40,
-              borderRadius: "50%",
-              border: "0.5px dashed rgba(0,153,255,0.07)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
-
-          {IOS_SEGMENTS.map((segment) => {
-            const isActive = tappedSegment === segment.id;
-            const clip = isActive ? segment.activeClip : segment.restClip;
-            const shiftX = isActive ? segment.shift.x : 0;
-            const shiftY = isActive ? segment.shift.y : 0;
-
-            return (
-              <div
-                key={segment.id}
-                onClick={() =>
-                  setTappedSegment(isActive ? null : segment.id)
-                }
-                style={{
-                  position: "absolute",
-                  left: -IOS_PAD,
-                  top: -IOS_PAD,
-                  width: IOS_PIE + IOS_PAD * 2,
-                  height: IOS_PIE + IOS_PAD * 2,
-                  clipPath: clip,
-                  WebkitClipPath: clip,
-                  transform: `translate(${shiftX.toFixed(2)}px, ${shiftY.toFixed(2)}px)`,
-                  transition:
-                    "clip-path 0.4s cubic-bezier(0.16,1,0.3,1), -webkit-clip-path 0.4s cubic-bezier(0.16,1,0.3,1), transform 0.4s cubic-bezier(0.16,1,0.3,1), filter 0.3s ease",
-                  // Open slice brightest, its neighbours pushed back, and an
-                  // even middle reading when nothing is open.
-                  filter: isActive
-                    ? "brightness(1.25)"
-                    : tappedSegment
-                      ? "brightness(0.55)"
-                      : "brightness(0.85)",
-                  overflow: "hidden",
-                  cursor: "none",
-                  WebkitTapHighlightColor: "transparent",
-                  zIndex: isActive ? 2 : 1,
-                }}
-              >
-                {/* Shows through if an asset fails, so a slice is never empty */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "#0d1a2a",
-                  }}
-                />
-
-                {/* eslint-disable-next-line @next/next/no-img-element -- local asset; next/image would need a config change */}
-                <img
-                  src={segment.thumbnail}
-                  alt={segment.title}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                {/* Still at rest and motion once open, the same swap the SVG
-                    pie makes. Layered over the thumbnail rather than replacing
-                    it, so a clip iOS cannot decode leaves the still in place
-                    instead of an empty slice. Mounting it only while open is
-                    also what makes autoplay fire on each tap. */}
-                {isActive && segment.videoSrc ? (
-                  <video
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    src={segment.videoSrc}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      pointerEvents: "none",
-                    }}
-                  />
-                ) : null}
-
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.25)",
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-            );
-          })}
-
-          {/* Hardware disc, which is also the hole the slices are cut around */}
-          <div
-            onClick={() => setSelectedProject(centerData.primaryProject)}
-            style={{
-              position: "absolute",
-              left: IOS_CX - IOS_INNER,
-              top: IOS_CY - IOS_INNER,
-              width: IOS_INNER * 2,
-              height: IOS_INNER * 2,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle, #001833 0%, #000510 100%)",
-              border: "1px solid rgba(0,153,255,0.5)",
-              boxShadow:
-                "0 0 20px rgba(0,153,255,0.4), 0 0 40px rgba(0,153,255,0.15), inset 0 0 20px rgba(0,153,255,0.15)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 5,
-              cursor: "none",
-              animation: "core-pulse 2.5s ease-in-out infinite",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: 500,
-                color: "rgba(255,255,255,0.9)",
-                fontFamily: "Inter",
-                letterSpacing: "-0.3px",
-                textShadow: "0 0 10px rgba(0,153,255,0.8)",
-              }}
-            >
-              {centerData.title}
-            </span>
-            <span
-              style={{
-                fontSize: "8px",
-                color: "#555555",
-                fontFamily: "Inter",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginTop: "2px",
-              }}
-            >
-              {centerData.subtitle}
-            </span>
-          </div>
-
-          {/* Slice outlines and the curved titles. Plain SVG at the root, which
-              iOS draws correctly: the bug this whole pie works around is a
-              foreignObject behind a clipPath, not SVG itself. Nothing here
-              takes a pointer, so the slices underneath keep the tap. */}
-          <svg
-            viewBox={`0 0 ${IOS_PIE} ${IOS_PIE}`}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              pointerEvents: "none",
-              zIndex: 4,
-              overflow: "visible",
-            }}
-          >
-            <defs>
-              {IOS_SEGMENTS.map((segment) => {
-                // Pulled in at both ends so the text never runs into the seam.
-                const from = iosPolar(
-                  IOS_CX,
-                  IOS_CY,
-                  IOS_LABEL_R,
-                  segment.startDeg + 8,
-                );
-                const to = iosPolar(
-                  IOS_CX,
-                  IOS_CY,
-                  IOS_LABEL_R,
-                  segment.endDeg - 8,
-                );
-                const d = segment.flipLabel
-                  ? `M ${to.x} ${to.y} A ${IOS_LABEL_R} ${IOS_LABEL_R} 0 0 0 ${from.x} ${from.y}`
-                  : `M ${from.x} ${from.y} A ${IOS_LABEL_R} ${IOS_LABEL_R} 0 0 1 ${to.x} ${to.y}`;
-                return (
-                  <path key={segment.id} id={`ios-label-arc-${segment.id}`} d={d} />
-                );
-              })}
-            </defs>
-
-            {IOS_SEGMENTS.map((segment) => {
-              const isActive = tappedSegment === segment.id;
-              return (
-                <path
-                  key={`outline-${segment.id}`}
-                  d={iosArcPath(
-                    segment.startDeg,
-                    segment.endDeg,
-                    isActive ? IOS_OUTER_ACTIVE : IOS_OUTER_DEFAULT,
-                  )}
-                  fill="none"
-                  stroke={
-                    isActive ? "rgba(0,153,255,0.8)" : "rgba(0,153,255,0.15)"
-                  }
-                  strokeWidth={isActive ? 1.5 : 1}
-                  transform={
-                    isActive
-                      ? `translate(${segment.shift.x.toFixed(2)} ${segment.shift.y.toFixed(2)})`
-                      : undefined
-                  }
-                  style={{ transition: "stroke 0.3s ease" }}
-                />
-              );
-            })}
-
-            {IOS_SEGMENTS.map((segment) => (
-              <text
-                key={`label-${segment.id}`}
-                fontSize="9"
-                fontWeight="700"
-                fill={
-                  tappedSegment === segment.id
-                    ? "rgba(255,255,255,1)"
-                    : "rgba(255,255,255,0.75)"
-                }
-                fontFamily="Inter"
-                letterSpacing="1.5"
-                textAnchor="middle"
-                style={{ transition: "fill 0.3s ease" }}
-              >
-                <textPath
-                  href={`#ios-label-arc-${segment.id}`}
-                  startOffset="50%"
-                >
-                  {segment.title.toUpperCase()}
-                </textPath>
-              </text>
-            ))}
-          </svg>
-
-          {/* Know more, on the open slice only, in the gap the slice leaves */}
-          {IOS_SEGMENTS.map((segment) => {
-            if (tappedSegment !== segment.id) return null;
-            return (
-              <div
-                key={`pill-${segment.id}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedProject(segment.primaryProject);
-                }}
-                style={{
-                  position: "absolute",
-                  left: segment.pill.x,
-                  top: segment.pill.y,
-                  transform: "translate(-50%, -50%)",
-                  zIndex: 8,
-                  pointerEvents: "all",
-                  cursor: "none",
-                }}
-              >
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    background: "rgba(9,9,9,0.92)",
-                    backdropFilter: "blur(8px)",
-                    WebkitBackdropFilter: "blur(8px)",
-                    border: "0.5px solid rgba(0,153,255,0.5)",
-                    borderRadius: "100px",
-                    padding: "7px 14px",
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    color: "#ffffff",
-                    fontFamily: "Inter",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 0 12px rgba(0,153,255,0.2)",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#0099ff"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                  Know more
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
@@ -1579,7 +1150,9 @@ export default function SpecializationsSection() {
                 y={0}
                 width={PIE_SIZE}
                 height={PIE_SIZE}
-                clipPath={`url(#clip-${segment.id})`}
+                clipPath={
+                  useCssMediaClip ? undefined : `url(#clip-${segment.id})`
+                }
                 style={{ pointerEvents: "none" }}
               >
                 <SegmentMedia
@@ -1592,6 +1165,16 @@ export default function SpecializationsSection() {
                     videoRefs.current[segment.id] = el;
                   }}
                   config={MEDIA_CONFIG[segment.id as keyof typeof MEDIA_CONFIG]}
+                  clipPolygon={
+                    useCssMediaClip
+                      ? slicePolygon(
+                          HOVER_OUTER_R,
+                          INNER_R,
+                          segment.startAngle,
+                          segment.endAngle,
+                        )
+                      : undefined
+                  }
                 />
               </foreignObject>
             </motion.g>
@@ -1656,7 +1239,7 @@ export default function SpecializationsSection() {
               y={0}
               width={PIE_SIZE}
               height={PIE_SIZE}
-              clipPath="url(#clip-hardware)"
+              clipPath={useCssMediaClip ? undefined : "url(#clip-hardware)"}
               style={{ pointerEvents: "none" }}
             >
               <SegmentMedia
@@ -1669,6 +1252,15 @@ export default function SpecializationsSection() {
                   videoRefs.current[centerData.id] = el;
                 }}
                 config={MEDIA_CONFIG.hardware}
+                clipPolygon={
+                  useCssMediaClip
+                    ? hardwareCircleClip(
+                        activeSegment === centerData.id
+                          ? HARDWARE_HOVER_R
+                          : HARDWARE_R,
+                      )
+                    : undefined
+                }
               />
             </foreignObject>
 
@@ -2135,7 +1727,6 @@ export default function SpecializationsSection() {
           {/* Hardware "Know more" is now inside the SVG center disc. */}
         </div>
       </div>
-      )}
 
       {/* Full screen project overlay. Kept outside the scaled pie wrapper: a
           transformed ancestor would become the containing block for the fixed
