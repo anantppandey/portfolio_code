@@ -352,8 +352,18 @@ footer {
      while the drawing shrinks. Scale from the top and pull the unused
      scaled-away height back out from underneath it. */
   .pie-container {
+    width: clamp(260px, 82vw, 380px) !important;
+    height: clamp(260px, 82vw, 380px) !important;
+    transform: none !important;
+    margin: 0 auto !important;
     transform-origin: top center !important;
     margin-bottom: calc(700px * (1 - 0.42) * -1) !important;
+  }
+
+  .specializations-section {
+    overflow: hidden !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   #projects {

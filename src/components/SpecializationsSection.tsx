@@ -853,7 +853,8 @@ export default function SpecializationsSection() {
   return (
     <section
       id="specializations"
-      className="relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
+      className="specializations-section relative z-[1] flex h-screen w-full items-center justify-center overflow-hidden bg-canvas"
+      style={{ overflow: "hidden" }}
     >
       <style>{PIE_LAYOUT_CSS}</style>
 
