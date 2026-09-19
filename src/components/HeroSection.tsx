@@ -122,7 +122,7 @@ export default function HeroSection() {
           maxWidth: "none",
         }}
       >
-        <div className="w-full max-w-[650px] text-left">
+        <div className="hero-heading-block w-full max-w-[650px] text-left" style={{ width: "55vw", maxWidth: "none" }}>
           {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
@@ -136,7 +136,7 @@ export default function HeroSection() {
 
 
         {/* Name */}
-        <h1 className="mb-0 leading-[0.82] text-ink">
+        <h1 className="mb-0 leading-[0.82] text-ink" style={{ width: "100%", fontSize: "clamp(64px, 9vw, 140px)" }}>
           <motion.span
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}

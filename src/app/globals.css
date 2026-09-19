@@ -415,6 +415,7 @@ footer {
 
   .hero-heading-block {
     padding-left: 15% !important;
+    width: 100% !important;
   }
 }
 
@@ -425,5 +426,15 @@ footer {
     margin-left: 0 !important;
     margin-right: 0 !important;
     max-width: none !important;
+  }
+
+  .hero-heading-block {
+    width: 55vw !important;
+    max-width: none !important;
+  }
+
+  .hero-heading-block h1 {
+    width: 100% !important;
+    font-size: clamp(64px, 9vw, 140px) !important;
   }
 }
