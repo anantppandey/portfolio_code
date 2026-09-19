@@ -352,8 +352,18 @@ footer {
      while the drawing shrinks. Scale from the top and pull the unused
      scaled-away height back out from underneath it. */
   .pie-container {
+    width: clamp(260px, 82vw, 380px) !important;
+    height: clamp(260px, 82vw, 380px) !important;
+    transform: none !important;
+    margin: 0 auto !important;
     transform-origin: top center !important;
     margin-bottom: calc(700px * (1 - 0.42) * -1) !important;
+  }
+
+  .specializations-section {
+    overflow: hidden !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   #projects {
@@ -403,7 +413,59 @@ footer {
     padding-bottom: 64px !important;
   }
 
+  .hero-section {
+    min-height: unset !important;
+    height: auto !important;
+    padding-bottom: 48px !important;
+  }
+
   .hero-heading-block {
-    padding-left: 15% !important;
+    width: 100% !important;
+    transform: scaleX(1.02) !important;
+    transform-origin: right center !important;
+    padding-left: 0 !important;
+    max-width: none !important;
+  }
+
+  .hero-heading-block h1 {
+    font-size: clamp(52px, 14vw, 80px) !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    letter-spacing: -2px !important;
+    width: auto !important;
+  }
+
+  .hero-heading-block h1 span.im-text {
+    font-size: inherit !important;
+  }
+
+  .hero-bottom-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  .hero-content-wrapper {
+    margin-left: -5% !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero-content-wrapper {
+    padding-left: 15vw !important;
+    padding-right: unset !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: none !important;
+  }
+
+  .hero-heading-block {
+    width: 65vw !important;
+    max-width: none !important;
+  }
+
+  .hero-heading-block h1 {
+    width: 100% !important;
+    font-size: clamp(64px, 9vw, 140px) !important;
   }
 }

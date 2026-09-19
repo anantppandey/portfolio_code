@@ -113,21 +113,30 @@ export default function HeroSection() {
       <HeroBackground />
       <GridOverlay />
 
-      <div className="relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center px-6 py-10 text-left md:px-8 lg:translate-x-0 lg:px-6 xl:-translate-x-[18%] xl:px-6">
-        <div className="w-full max-w-[650px] text-left">
+      <div
+        className="hero-content-wrapper relative z-[2] flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center py-10 text-left px-6 md:px-8"
+        style={{
+          paddingLeft: "15vw",
+          marginLeft: "0",
+          marginRight: "0",
+          maxWidth: "none",
+        }}
+      >
+        <div className="hero-heading-block w-full max-w-[650px] text-left" style={{ width: "65vw", maxWidth: "none" }}>
           {/* Greeting */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.6, ease: EASE }}
-          className="mb-[6px] self-start text-left text-[17px] font-normal tracking-[0.04em] text-ink-muted"
+          className="mb-[6px] self-start text-left font-normal tracking-[0.04em] text-ink-muted"
+          style={{ fontSize: "clamp(12px, 1vw, 15px)" }}
         >
           Hello there,
         </motion.p>
 
 
         {/* Name */}
-        <h1 className="mb-0 leading-[0.82] text-ink">
+        <h1 className="mb-0 leading-[0.82] text-ink" style={{ width: "100%", fontSize: "clamp(64px, 9vw, 140px)" }}>
           <motion.span
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -141,7 +150,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.42, duration: 0.8, ease: EASE }}
-            className="relative block text-[clamp(78px,20vw,108px)] font-black tracking-[-4px] text-ink md:text-[clamp(100px,11.5vw,165px)] md:tracking-[-6px]"
+            className="relative block text-[clamp(78px,20vw,108px)] font-black tracking-[-4px] text-ink md:text-[clamp(64px,8.5vw,130px)] md:tracking-[-6px]"
           >
             Anant
           </motion.span>
@@ -149,7 +158,7 @@ export default function HeroSection() {
         </div>
 
         {/* Centered content below the name */}
-        <div className="flex w-full max-w-[650px] flex-col items-center text-center">
+        <div className="hero-bottom-section flex w-full max-w-[650px] flex-col items-center text-center md:max-w-[634px]" style={{ maxWidth: "480px" }}>
         {/* Separator dividing the hero into halves */}
         <motion.div
           aria-hidden="true"
@@ -168,7 +177,8 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6, ease: EASE }}
-          className="max-w-[650px] text-[17px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted"
+          className="max-w-[650px] font-normal leading-[1.65] tracking-[-0.1px] text-ink-muted"
+          style={{ fontSize: "clamp(12px, 1vw, 15px)" }}
         >
           Robotics Engineer specializing in manipulation, simulation, and robot learning. I turn robotic concepts into functional systems, integrating simulation, motion planning, and learning based control across both virtual environments and real world hardware. Currently looking for my next robotics role in Bangalore.
         </motion.p>
