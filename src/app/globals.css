@@ -378,6 +378,10 @@ footer {
     height: auto !important;
   }
 
+  .spec-heading {
+    top: calc(23px + 10%) !important;
+  }
+
   #projects {
     min-height: unset !important;
     padding-top: 48px !important;
