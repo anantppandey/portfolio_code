@@ -1558,69 +1558,14 @@ export default function SpecializationsSection() {
               stroke="rgba(0,153,255,0.12)"
               strokeWidth={0.5}
             />
-            <motion.g
-              animate={{
-                scale: activeSegment === centerData.id
-                  ? HARDWARE_HOVER_R / HARDWARE_R
-                  : 1,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              style={{
-                transformBox: "view-box",
-                transformOrigin: "350px 350px",
-              }}
-            >
-              <text
-                x={CX}
-                y={277}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontSize={18}
-                fontWeight={600}
-                fontFamily="Inter"
-                letterSpacing={-0.5}
-              >
-                Hardware
-              </text>
-              <text
-                x={CX}
-                y={440}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontSize={11}
-                fontWeight={500}
-                fontFamily="Inter, sans-serif"
-                letterSpacing={0.5}
-                style={{ cursor: "pointer", pointerEvents: "all" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedProject(centerData.primaryProject);
-                }}
-              >
-                → Know more
-              </text>
-            </motion.g>
             {/*
-              A plain circle, not a motion one. This is the Hardware hit area,
-              and when framer owned its `r` through `animate` the attribute
-              read "undefined" until an animation frame wrote a real value,
-              which left the element 0 by 0 with no hit area at all. That is
-              the source of the repeated `<circle> attribute r` console error,
-              and it is why tapping the middle of the disc did nothing.
-
-              The radius now comes straight from state, so it is always a
-              valid number. It steps rather than eases, which an invisible
-              target does not care about, and it tracks the disc: 108 at rest,
-              so it does not reach over the slices that start at 110, and the
-              expanded 150 while the disc is open so the whole of it answers.
+              One wrapper owns the disc's hover and tap. The hit circle and the
+              Know more label are siblings inside it, which is what stops the
+              two from fighting: handlers on the circle alone fired mouseleave
+              the moment the pointer crossed onto the label sitting over it,
+              which closed the disc and took the label with it.
             */}
-            <circle
-              cx={CX}
-              cy={CY}
-              r={
-                activeSegment === centerData.id ? HARDWARE_HOVER_R : HARDWARE_R
-              }
-              fill="transparent"
+            <g
               onMouseEnter={
                 isMobile ? undefined : () => setHoveredSegment(centerData.id)
               }
@@ -1635,8 +1580,117 @@ export default function SpecializationsSection() {
                   ? (event) => handleSegmentTouch(centerData.id, event)
                   : undefined
               }
-              style={{ cursor: "none", pointerEvents: "all" }}
-            />
+              style={{ cursor: "none" }}
+            >
+              {/*
+                A plain circle, not a motion one. When framer owned its `r`
+                through `animate` the attribute read "undefined" until an
+                animation frame wrote a real value, which left the element 0 by
+                0 with no hit area at all. That is the source of the repeated
+                `<circle> attribute r` console error.
+
+                The radius now comes straight from state, so it is always a
+                valid number. It steps rather than eases, which an invisible
+                target does not care about, and it tracks the disc: 108 at
+                rest, so it does not reach over the slices that start at 110,
+                and the expanded 150 while the disc is open so the whole of it
+                answers. It is drawn before the label so the label, which
+                paints later, is the one that answers a tap on the words.
+              */}
+              <circle
+                cx={CX}
+                cy={CY}
+                r={
+                  activeSegment === centerData.id
+                    ? HARDWARE_HOVER_R
+                    : HARDWARE_R
+                }
+                fill="transparent"
+                style={{ cursor: "none", pointerEvents: "all" }}
+              />
+
+              <motion.g
+                animate={{
+                  scale: activeSegment === centerData.id
+                    ? HARDWARE_HOVER_R / HARDWARE_R
+                    : 1,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                style={{
+                  transformBox: "view-box",
+                  transformOrigin: "350px 350px",
+                }}
+              >
+                <text
+                  x={CX}
+                  y={277}
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize={18}
+                  fontWeight={600}
+                  fontFamily="Inter"
+                  letterSpacing={-0.5}
+                  // Otherwise the word itself is a dead patch over the hit
+                  // circle, since SVG text hit-tests its own glyphs.
+                  style={{ pointerEvents: "none" }}
+                >
+                  Hardware
+                </text>
+
+                {/* Same rule as the slices: hover reveals it on desktop, a tap
+                    reveals it on mobile, and it is not there at rest. */}
+                <AnimatePresence>
+                  {activeSegment === centerData.id && (
+                    <motion.g
+                      key="hardware-know-more"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2, ease: EASE }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProject(centerData.primaryProject);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setSelectedProject(centerData.primaryProject);
+                      }}
+                      style={{ cursor: "none" }}
+                    >
+                      {/* The glyphs are a few px tall once the pie scales
+                          down, so the tap rides a transparent box around
+                          them rather than the text itself. */}
+                      <rect
+                        x={CX - 62}
+                        y={424}
+                        width={124}
+                        height={24}
+                        fill="transparent"
+                        style={{ pointerEvents: "all" }}
+                      />
+                      <text
+                        x={CX}
+                        y={440}
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontSize={11}
+                        fontWeight={500}
+                        fontFamily="Inter, sans-serif"
+                        letterSpacing={0.5}
+                        style={{
+                          cursor: "none",
+                          pointerEvents: "all",
+                          userSelect: "none",
+                        }}
+                      >
+                        → Know more
+                      </text>
+                    </motion.g>
+                  )}
+                </AnimatePresence>
+              </motion.g>
+            </g>
           </motion.g>
 
           {/* Segment labels: true curved text following the outer circumference. */}
@@ -1788,15 +1842,17 @@ export default function SpecializationsSection() {
             );
           })}
 
-          {/* Mobile tap affordance, curved along the crescent the way the slice
-              titles follow their own arcs. It lives in the SVG rather than the
-              HTML overlay below because only SVG text can take a real curve.
-              The clip problem that pushed the Hardware pill out of the artwork
-              does not apply here: that was a foreignObject inheriting a slice
-              clipPath, and this is plain SVG text at the root. */}
+          {/* The open slice's affordance, curved along the crescent the way the
+              slice titles follow their own arcs. It lives in the SVG rather
+              than the HTML overlay below because only SVG text can take a real
+              curve. The clip problem that pushed the Hardware pill out of the
+              artwork does not apply here: that was a foreignObject inheriting a
+              slice clipPath, and this is plain SVG text at the root.
+
+              Keyed off activeSegment rather than isMobile, so hover reveals it
+              on desktop and a tap reveals it on mobile. */}
           <AnimatePresence>
-            {isMobile &&
-              segments.map((segment) => {
+            {segments.map((segment) => {
                 if (activeSegment !== segment.id) return null;
 
                 const angle = midAngle(segment);
@@ -1849,6 +1905,21 @@ export default function SpecializationsSection() {
                       transformBox: "view-box",
                       transformOrigin: "350px 350px",
                     }}
+                    /*
+                     * The crescent this sits in is outside the slice's own hit
+                     * shape, so on desktop the pointer leaving the slice to
+                     * reach these words would clear the hover and take them
+                     * away mid-approach. Re-asserting the hover here keeps the
+                     * slice open for as long as the pointer is on the label.
+                     */
+                    onMouseEnter={
+                      isMobile
+                        ? undefined
+                        : () => setHoveredSegment(segment.id)
+                    }
+                    onMouseLeave={
+                      isMobile ? undefined : () => setHoveredSegment(null)
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedProject(segment.primaryProject);
