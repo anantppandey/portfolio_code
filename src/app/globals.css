@@ -421,7 +421,8 @@ footer {
 
   .hero-heading-block {
     width: 100% !important;
-    transform: none !important;
+    transform: scaleX(1.02) !important;
+    transform-origin: right center !important;
     padding-left: 0 !important;
     max-width: none !important;
   }
