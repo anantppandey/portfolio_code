@@ -690,9 +690,6 @@ export default function SpecializationsSection() {
   const [selectedProject, setSelectedProject] = useState<SegmentProject | null>(
     null,
   );
-  // The drawing is laid out in fixed units, so it scales to fit rather than
-  // reflowing. Starts at 1 so server and first client render agree.
-  const [pieScale, setPieScale] = useState(1);
   /** Starts false so the server render matches; the real value lands after mount. */
   const [isMobile, setIsMobile] = useState(false);
   /** One entry per slice plus the Hardware disc, keyed by segment id. */
@@ -766,20 +763,6 @@ export default function SpecializationsSection() {
     introOpened.current = true;
     setTappedSegment(segments[0].id);
   }, [isMobile]);
-
-  useEffect(() => {
-    const pick = () => {
-      // The box sizes itself now, so desktop runs at 1 and the scale is down to
-      // the one job it still has: fitting the 700px box mobile pins itself to,
-      // which 0.42 does. The old 900 and 1200 steps were covering for the fixed
-      // size the clamp took over, and stacked on the clamp they shrank the pie
-      // twice over.
-      setPieScale(window.innerWidth < 768 ? 0.42 : 1);
-    };
-    pick();
-    window.addEventListener("resize", pick);
-    return () => window.removeEventListener("resize", pick);
-  }, []);
 
   // Only the active shape's clip plays; the rest rewind so each expand starts
   // from the top. play() rejects if the source cannot load, hence the catch.
@@ -865,16 +848,17 @@ export default function SpecializationsSection() {
       <div
         className="pie-container relative z-[2] shrink-0"
         style={{
-          width: "clamp(360px, min(44vw, 72vh), 680px)",
-          height: "clamp(360px, min(44vw, 72vh), 680px)",
+          width: "clamp(420px, min(38vw, 68vh), 660px)",
+          height: "clamp(420px, min(38vw, 68vh), 660px)",
           marginTop: -40,
-          scale: pieScale,
-          transformOrigin: "center center",
         }}
       >
         <svg
+          width="100%"
+          height="100%"
           viewBox="0 0 700 700"
-          className="absolute inset-0 h-full w-full"
+          preserveAspectRatio="xMidYMid meet"
+          className="absolute inset-0"
           style={{ overflow: "visible" }}
         >
           <style>{PIE_KEYFRAMES}</style>
