@@ -420,8 +420,10 @@ footer {
 
 @media (min-width: 768px) {
   .hero-content-wrapper {
-    padding-left: clamp(40px, 6vw, 120px) !important;
-    padding-right: clamp(40px, 6vw, 120px) !important;
-    max-width: 640px !important;
+    padding-left: 15vw !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 520px !important;
   }
 }
