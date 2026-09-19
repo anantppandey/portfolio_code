@@ -443,6 +443,10 @@ footer {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
   }
+
+  .hero-content-wrapper {
+    margin-left: -10% !important;
+  }
 }
 
 @media (min-width: 768px) {
