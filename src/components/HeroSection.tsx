@@ -114,12 +114,11 @@ export default function HeroSection() {
       <GridOverlay />
 
       <div
-        className="hero-content-wrapper relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center py-10 text-left px-6 md:px-8"
+        className="hero-content-wrapper relative z-[2] mx-auto flex min-h-screen w-full max-w-[1100px] flex-col items-start justify-center py-10 text-left px-6 md:px-8 md:-translate-x-[35%]"
         style={{
           paddingLeft: "clamp(40px, 6vw, 120px)",
           paddingRight: "clamp(40px, 6vw, 120px)",
           maxWidth: "640px",
-          transform: "translateX(-35%)",
         }}
       >
         <div className="w-full max-w-[650px] text-left">
