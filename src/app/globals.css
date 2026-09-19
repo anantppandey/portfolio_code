@@ -352,18 +352,34 @@ footer {
      while the drawing shrinks. Scale from the top and pull the unused
      scaled-away height back out from underneath it. */
   .pie-container {
-    width: clamp(260px, 82vw, 380px) !important;
-    height: clamp(260px, 82vw, 380px) !important;
+    width: 78vw !important;
+    height: 78vw !important;
+    max-width: 320px !important;
+    max-height: 320px !important;
     transform: none !important;
+    -webkit-transform: none !important;
     margin: 0 auto !important;
-    transform-origin: top center !important;
-    margin-bottom: calc(700px * (1 - 0.42) * -1) !important;
+    left: 0 !important;
+    right: 0 !important;
+    position: relative !important;
   }
 
   .specializations-section {
+    width: 100vw !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
     overflow: hidden !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    box-sizing: border-box !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  .spec-heading {
+    top: calc(23px + 10%) !important;
   }
 
   #projects {
