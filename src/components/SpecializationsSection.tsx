@@ -665,11 +665,20 @@ const PIE_KEYFRAMES = `
  * with the window instead of sitting at a fixed 700. The height term is what
  * keeps it inside the section: the drawn ink runs about 1.06x the box, and the
  * section is only as tall as the viewport, so sizing off the width alone
- * overflowed the top and bottom of shorter screens. Below 768 the box is pinned
- * back to 700, which is the size the mobile scale and the -406px margin-bottom
- * in globals.css are calibrated against, and stretched to the height left under
- * the section label so the drawing, which keeps its own aspect ratio inside it,
- * lands in the middle of it.
+ * overflowed the top and bottom of shorter screens.
+ *
+ * Below 768 the box is sized outright with min(), rather than set to 700 and
+ * cut back down by the max-width in globals.css. Leaning on that clamp is what
+ * broke the pie on iOS: the container is a flex item, so its min-width is auto,
+ * and Safari reads an SVG's intrinsic width off the viewBox where Chrome reads
+ * zero. That gave it a 700px floor, a minimum beats a maximum, the max-width
+ * was dropped, and the pie drew at full 700 scale with its centre pushed off
+ * the right of the screen. min-width and min-height are pinned to 0 so no
+ * intrinsic floor can come back, and no min/max standoff is left to lose.
+ *
+ * The old min-height of calc(100dvh - 60px) is gone with it. It was fighting
+ * the 300px max-height the same way and winning, which left the box 752 tall
+ * around a 300 tall drawing and a dead band above and below it on every phone.
  *
  * Written as a media query rather than an isMobile check because this is
  * layout and it has to be right on the first paint. The size and the margin-top
@@ -680,13 +689,17 @@ const PIE_KEYFRAMES = `
 const PIE_LAYOUT_CSS = `
   @media (max-width: 767px) {
     .pie-container {
-      width: 700px !important;
-      height: 700px !important;
+      /* 300 is the size the drawing already resolves to on every phone in
+         use, so Android keeps the pie it has today; the min() only pulls it
+         in on anything narrower than 320, where the old clamp overflowed. */
+      width: min(100vw - 20px, 300px) !important;
+      height: min(100vw - 20px, 300px) !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: calc(100dvh - 60px);
       margin-top: 0 !important;
       padding-top: 0;
       padding-bottom: 0;
