@@ -1210,6 +1210,23 @@ export default function SpecializationsSection() {
               >
                 Hardware
               </text>
+              <text
+                x={CX}
+                y={440}
+                textAnchor="middle"
+                fill="#ffffff"
+                fontSize={11}
+                fontWeight={500}
+                fontFamily="Inter, sans-serif"
+                letterSpacing={0.5}
+                style={{ cursor: "pointer", pointerEvents: "all" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedProject(centerData.primaryProject);
+                }}
+              >
+                → Know more
+              </text>
             </motion.g>
             {/*
               A plain circle, not a motion one. This is the Hardware hit area,
@@ -1537,46 +1554,7 @@ export default function SpecializationsSection() {
             pointerEvents: "none",
           }}
         >
-          {/* The segment label now curves inside the SVG above. Only the
-              Hardware one stays here: it sits flat in the middle of the disc,
-              where there is no arc to follow. */}
-          <AnimatePresence>
-            {isMobile && activeSegment === centerData.id && (
-              <motion.div
-                key={centerData.id}
-                className="pie-know-more"
-                initial={{ opacity: 0, scale: 0.88, y: 4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.88, y: 4 }}
-                transition={{ duration: 0.2, ease: EASE }}
-                style={{
-                  position: "absolute",
-                  left: CX - 4,
-                  /*
-                   * Just inside the bottom edge of the Hardware disc, whose
-                   * radius is HARDWARE_R (108). Anchored off the box's own
-                   * middle rather than the CY constant because below 768 the
-                   * box is stretched and the drawing sits centred inside it,
-                   * where CY is no longer the top of the box plus 350. The two
-                   * agree at the 700px box every desktop case uses.
-                   */
-                  top: "calc(50% + 130px)",
-                  // The CSS `translate` property rather than `transform`, which
-                  // the motion animation above writes to.
-                  translate: "-50% -50%",
-                  pointerEvents: "all",
-                  cursor: "none",
-                  zIndex: 20,
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedProject(centerData.primaryProject);
-                }}
-              >
-                <KnowMoreLink color="#ffffff" fontSize="13px" iconSize={12} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Hardware "Know more" is now inside the SVG center disc. */}
         </div>
       </div>
 

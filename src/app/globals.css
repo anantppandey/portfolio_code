@@ -383,16 +383,6 @@ footer {
     top: calc(23px + 10%) !important;
   }
 
-  .pie-know-more {
-    position: absolute !important;
-    bottom: 8% !important;
-    right: 8% !important;
-    left: auto !important;
-    top: auto !important;
-    font-size: 11px !important;
-    white-space: nowrap !important;
-    z-index: 10 !important;
-  }
 
   #projects {
     min-height: unset !important;
