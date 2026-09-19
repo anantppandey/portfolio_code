@@ -694,31 +694,35 @@ const PIE_LAYOUT_CSS = `
  * Desktop and Android keep the SVG pie below, untouched.
  */
 
-/** Fixed box rather than a viewport unit, so it fits every phone down to 320. */
-const IOS_PIE = 300;
-const IOS_CX = 150;
-const IOS_CY = 150;
-const IOS_OUTER = 150;
-/** Matches the Hardware disc, which plugs the hole in the middle. */
-const IOS_INNER = 55;
-/** Seam on each side of a slice, the same gap the SVG pie uses. */
-const IOS_GAP = 1.5;
-/**
- * Labels and the Know more pill both ride inside the donut band, the label out
- * near the rim and the pill below it. There is only about 37px of room beside
- * a 300px pie on a 375px phone, which is nowhere near enough for horizontal
- * text outside the rim - that is why the SVG pie curves its labels along the
- * arc. Flat HTML text cannot curve, so it goes over the artwork instead and
- * carries a shadow to stay legible.
+/*
+ * Geometry is the 340 design space at 0.9. At full size an expanded slice
+ * reaches 190 and then slides 12 further, so its rim lands 202 from the
+ * centre: a 404 circle on a phone 375 wide, and the section clips whatever
+ * hangs past the edge. Scaled, the same shape and the same proportions come
+ * to 364 across and clear a 375 screen with room on both sides.
  */
-const IOS_LABEL_R = 140;
-const IOS_PILL_R = 100;
-/** Half the width each element is allowed, used to keep both inside the box. */
-const IOS_LABEL_HALF = 70;
-const IOS_PILL_HALF = 40;
-
-const clamp = (v: number, min: number, max: number) =>
-  Math.min(Math.max(v, min), max);
+const IOS_SCALE = 0.9;
+const IOS_PIE = 340 * IOS_SCALE;
+const IOS_CX = 170 * IOS_SCALE;
+const IOS_CY = 170 * IOS_SCALE;
+const IOS_OUTER_DEFAULT = 165 * IOS_SCALE;
+/** A tapped slice grows outward, the way a hovered one does on desktop. */
+const IOS_OUTER_ACTIVE = 190 * IOS_SCALE;
+/** Matches the Hardware disc, which plugs the hole in the middle. */
+const IOS_INNER = 62 * IOS_SCALE;
+/** Seam on each side of a slice, the same gap the SVG pie uses. */
+const IOS_GAP_DEG = 1.5;
+/** How far a tapped slice slides along its own mid-angle. */
+const IOS_SHIFT = 12 * IOS_SCALE;
+const IOS_LABEL_R = IOS_OUTER_DEFAULT + 18 * IOS_SCALE;
+const IOS_PILL_R = (IOS_INNER + IOS_OUTER_DEFAULT) * 0.6;
+/**
+ * A clip-path cannot show anything outside its own element's box, so a slice
+ * div that stopped at the container edge would come back with its expanded
+ * arc sawn off flat. Each one overhangs by this much instead, which is why
+ * the slice polygons are built around a centre of CX + PAD rather than CX.
+ */
+const IOS_PAD = 28;
 
 function iosPolar(cx: number, cy: number, r: number, deg: number) {
   return { x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) };
@@ -726,18 +730,17 @@ function iosPolar(cx: number, cy: number, r: number, deg: number) {
 
 /**
  * Donut slice as a clip-path polygon: the outer arc walked forwards, the inner
- * arc walked back. 24 steps per arc is smooth at this size and keeps the
- * property short enough to stay cheap to re-evaluate.
+ * arc walked back. Every slice uses the same step count so the browser can
+ * interpolate between the resting and expanded shapes and animate the growth.
  */
-function buildSegmentPolygon(
+function buildSegmentClipPath(
   startDeg: number,
   endDeg: number,
-  cx: number,
-  cy: number,
   outerR: number,
-  innerR: number,
-  steps = 24,
+  steps = 32,
 ): string {
+  const cx = IOS_CX + IOS_PAD;
+  const cy = IOS_CY + IOS_PAD;
   const points: string[] = [];
 
   for (let i = 0; i <= steps; i++) {
@@ -748,52 +751,86 @@ function buildSegmentPolygon(
 
   for (let i = steps; i >= 0; i--) {
     const deg = startDeg + (endDeg - startDeg) * (i / steps);
-    const p = iosPolar(cx, cy, innerR, deg);
+    const p = iosPolar(cx, cy, IOS_INNER, deg);
     points.push(`${p.x.toFixed(2)}px ${p.y.toFixed(2)}px`);
   }
 
   return `polygon(${points.join(", ")})`;
 }
 
-/** The same three slices, narrowed by the seam and pre-clipped. */
+/**
+ * The same donut slice as a real SVG arc, for the outline that rides over the
+ * artwork. Drawn in container space, not the padded slice space.
+ */
+function iosArcPath(startDeg: number, endDeg: number, outerR: number) {
+  const oStart = iosPolar(IOS_CX, IOS_CY, outerR, startDeg);
+  const oEnd = iosPolar(IOS_CX, IOS_CY, outerR, endDeg);
+  const iStart = iosPolar(IOS_CX, IOS_CY, IOS_INNER, startDeg);
+  const iEnd = iosPolar(IOS_CX, IOS_CY, IOS_INNER, endDeg);
+  return [
+    `M ${oStart.x} ${oStart.y}`,
+    `A ${outerR} ${outerR} 0 0 1 ${oEnd.x} ${oEnd.y}`,
+    `L ${iEnd.x} ${iEnd.y}`,
+    `A ${IOS_INNER} ${IOS_INNER} 0 0 0 ${iStart.x} ${iStart.y}`,
+    "Z",
+  ].join(" ");
+}
+
+/** The same three slices, narrowed by the seam. */
 const IOS_SEGMENTS = segments.map((segment) => {
-  const startDeg = segment.startAngle + IOS_GAP;
-  const endDeg = segment.endAngle - IOS_GAP;
+  const startDeg = segment.startAngle + IOS_GAP_DEG;
+  const endDeg = segment.endAngle - IOS_GAP_DEG;
   const midDeg = (startDeg + endDeg) / 2;
-  const label = iosPolar(IOS_CX, IOS_CY, IOS_LABEL_R, midDeg);
-  const pill = iosPolar(IOS_CX, IOS_CY, IOS_PILL_R, midDeg);
   return {
     ...segment,
-    clipPath: buildSegmentPolygon(
-      startDeg,
-      endDeg,
-      IOS_CX,
-      IOS_CY,
-      IOS_OUTER,
-      IOS_INNER,
-    ),
-    labelPos: {
-      x: clamp(label.x, IOS_LABEL_HALF, IOS_PIE - IOS_LABEL_HALF),
-      y: label.y,
+    startDeg,
+    endDeg,
+    midDeg,
+    restClip: buildSegmentClipPath(startDeg, endDeg, IOS_OUTER_DEFAULT),
+    activeClip: buildSegmentClipPath(startDeg, endDeg, IOS_OUTER_ACTIVE),
+    shift: {
+      x: Math.cos(toRad(midDeg)) * IOS_SHIFT,
+      y: Math.sin(toRad(midDeg)) * IOS_SHIFT,
     },
-    pillPos: {
-      x: clamp(pill.x, IOS_PILL_HALF, IOS_PIE - IOS_PILL_HALF),
-      y: pill.y,
-    },
+    pill: iosPolar(IOS_CX, IOS_CY, IOS_PILL_R, midDeg),
+    /*
+     * Text on a clockwise arc reads upside down across the bottom of the
+     * circle, so the bottom slice gets its arc drawn the other way. The same
+     * rule the SVG pie's own labels use, which is what keeps the two matched.
+     */
+    flipLabel: midDeg > 0 && midDeg < 180,
   };
 });
 
 /**
- * The mobile rules in globals.css push #specializations to 136px of top
- * padding to clear the caption above the SVG pie. The iOS pie is shorter and
- * sits lower in its own box, so it takes the tighter spacing back. Written as
- * id + class so it outranks the !important rule it is overriding.
+ * Two things live here. The padding overrides the 136px that globals.css puts
+ * on #specializations for the SVG pie, which is the wrong clearance for this
+ * one: the labels and an expanded slice reach about 29px above the container,
+ * and 130 is what keeps that off the caption. Written as id + class so it
+ * outranks the !important rule it replaces.
+ *
+ * The keyframes are here rather than in globals.css because this component is
+ * the only file this change is allowed to touch, which is the same reason
+ * PIE_KEYFRAMES above is inline.
  */
 const IOS_PIE_CSS = `
   @media (max-width: 767px) {
     #specializations.ios-pie-section {
-      padding-top: 96px !important;
+      padding-top: 130px !important;
       padding-bottom: 56px !important;
+    }
+  }
+
+  @keyframes core-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0,153,255,0.4),
+        0 0 40px rgba(0,153,255,0.15),
+        inset 0 0 20px rgba(0,153,255,0.15);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(0,153,255,0.7),
+        0 0 60px rgba(0,153,255,0.25),
+        inset 0 0 30px rgba(0,153,255,0.25);
     }
   }
 `;
@@ -990,16 +1027,29 @@ export default function SpecializationsSection() {
           className="ios-pie relative z-[2] shrink-0"
           style={{ width: IOS_PIE, height: IOS_PIE }}
         >
-          {/* Outer ring decoration */}
+          {/* Decorative rings, the HTML answer to the two the SVG pie draws */}
           <div
             style={{
               position: "absolute",
-              left: -8,
-              top: -8,
-              width: IOS_PIE + 16,
-              height: IOS_PIE + 16,
+              left: -10,
+              top: -10,
+              width: IOS_PIE + 20,
+              height: IOS_PIE + 20,
               borderRadius: "50%",
-              border: "0.5px solid rgba(0,153,255,0.12)",
+              border: "0.5px solid rgba(0,153,255,0.2)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: -20,
+              top: -20,
+              width: IOS_PIE + 40,
+              height: IOS_PIE + 40,
+              borderRadius: "50%",
+              border: "0.5px dashed rgba(0,153,255,0.07)",
               pointerEvents: "none",
               zIndex: 0,
             }}
@@ -1007,6 +1057,10 @@ export default function SpecializationsSection() {
 
           {IOS_SEGMENTS.map((segment) => {
             const isActive = tappedSegment === segment.id;
+            const clip = isActive ? segment.activeClip : segment.restClip;
+            const shiftX = isActive ? segment.shift.x : 0;
+            const shiftY = isActive ? segment.shift.y : 0;
+
             return (
               <div
                 key={segment.id}
@@ -1015,19 +1069,37 @@ export default function SpecializationsSection() {
                 }
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  clipPath: segment.clipPath,
-                  WebkitClipPath: segment.clipPath,
+                  left: -IOS_PAD,
+                  top: -IOS_PAD,
+                  width: IOS_PIE + IOS_PAD * 2,
+                  height: IOS_PIE + IOS_PAD * 2,
+                  clipPath: clip,
+                  WebkitClipPath: clip,
+                  transform: `translate(${shiftX.toFixed(2)}px, ${shiftY.toFixed(2)}px)`,
+                  transition:
+                    "clip-path 0.4s cubic-bezier(0.16,1,0.3,1), -webkit-clip-path 0.4s cubic-bezier(0.16,1,0.3,1), transform 0.4s cubic-bezier(0.16,1,0.3,1), filter 0.3s ease",
+                  // Open slice brightest, its neighbours pushed back, and an
+                  // even middle reading when nothing is open.
+                  filter: isActive
+                    ? "brightness(1.25)"
+                    : tappedSegment
+                      ? "brightness(0.55)"
+                      : "brightness(0.85)",
+                  overflow: "hidden",
                   cursor: "none",
                   WebkitTapHighlightColor: "transparent",
-                  transition: "filter 0.3s ease",
-                  filter: isActive ? "brightness(1.3)" : "brightness(0.7)",
-                  overflow: "hidden",
-                  // Shows through if an asset fails, so a slice is never empty.
-                  background: "rgba(0,10,25,0.85)",
-                  zIndex: 1,
+                  zIndex: isActive ? 2 : 1,
                 }}
               >
+                {/* Shows through if an asset fails, so a slice is never empty */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "#0d1a2a",
+                  }}
+                />
+
                 {/* eslint-disable-next-line @next/next/no-img-element -- local asset; next/image would need a config change */}
                 <img
                   src={segment.thumbnail}
@@ -1042,9 +1114,11 @@ export default function SpecializationsSection() {
                   }}
                 />
 
-                {/* Layered over the thumbnail rather than swapped with it, so
-                    a clip iOS cannot decode leaves the still in place instead
-                    of an empty slice. */}
+                {/* Still at rest and motion once open, the same swap the SVG
+                    pie makes. Layered over the thumbnail rather than replacing
+                    it, so a clip iOS cannot decode leaves the still in place
+                    instead of an empty slice. Mounting it only while open is
+                    also what makes autoplay fire on each tap. */}
                 {isActive && segment.videoSrc ? (
                   <video
                     autoPlay
@@ -1070,7 +1144,7 @@ export default function SpecializationsSection() {
                   style={{
                     position: "absolute",
                     inset: 0,
-                    background: "rgba(0,0,0,0.35)",
+                    background: "rgba(0,0,0,0.25)",
                     pointerEvents: "none",
                   }}
                 />
@@ -1088,26 +1162,29 @@ export default function SpecializationsSection() {
               width: IOS_INNER * 2,
               height: IOS_INNER * 2,
               borderRadius: "50%",
-              background: "#090909",
-              border: "1px solid rgba(0,153,255,0.3)",
+              background:
+                "radial-gradient(circle, #001833 0%, #000510 100%)",
+              border: "1px solid rgba(0,153,255,0.5)",
               boxShadow:
-                "0 0 20px rgba(0,153,255,0.2), inset 0 0 20px rgba(0,153,255,0.1)",
+                "0 0 20px rgba(0,153,255,0.4), 0 0 40px rgba(0,153,255,0.15), inset 0 0 20px rgba(0,153,255,0.15)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              zIndex: 3,
+              zIndex: 5,
               cursor: "none",
+              animation: "core-pulse 2.5s ease-in-out infinite",
               WebkitTapHighlightColor: "transparent",
             }}
           >
             <span
               style={{
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 500,
-                color: "#ffffff",
+                color: "rgba(255,255,255,0.9)",
                 fontFamily: "Inter",
                 letterSpacing: "-0.3px",
+                textShadow: "0 0 10px rgba(0,153,255,0.8)",
               }}
             >
               {centerData.title}
@@ -1126,41 +1203,97 @@ export default function SpecializationsSection() {
             </span>
           </div>
 
-          {/* Slice labels, out near the rim */}
-          {IOS_SEGMENTS.map((segment) => (
-            <div
-              key={`label-${segment.id}`}
-              style={{
-                position: "absolute",
-                left: segment.labelPos.x,
-                top: segment.labelPos.y,
-                transform: "translate(-50%, -50%)",
-                textAlign: "center",
-                pointerEvents: "none",
-                zIndex: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "9px",
-                  fontWeight: 600,
-                  color:
-                    tappedSegment === segment.id
-                      ? "#ffffff"
-                      : "rgba(255,255,255,0.6)",
-                  fontFamily: "Inter",
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  whiteSpace: "nowrap",
-                  textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                }}
-              >
-                {segment.title}
-              </span>
-            </div>
-          ))}
+          {/* Slice outlines and the curved titles. Plain SVG at the root, which
+              iOS draws correctly: the bug this whole pie works around is a
+              foreignObject behind a clipPath, not SVG itself. Nothing here
+              takes a pointer, so the slices underneath keep the tap. */}
+          <svg
+            viewBox={`0 0 ${IOS_PIE} ${IOS_PIE}`}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none",
+              zIndex: 4,
+              overflow: "visible",
+            }}
+          >
+            <defs>
+              {IOS_SEGMENTS.map((segment) => {
+                // Pulled in at both ends so the text never runs into the seam.
+                const from = iosPolar(
+                  IOS_CX,
+                  IOS_CY,
+                  IOS_LABEL_R,
+                  segment.startDeg + 8,
+                );
+                const to = iosPolar(
+                  IOS_CX,
+                  IOS_CY,
+                  IOS_LABEL_R,
+                  segment.endDeg - 8,
+                );
+                const d = segment.flipLabel
+                  ? `M ${to.x} ${to.y} A ${IOS_LABEL_R} ${IOS_LABEL_R} 0 0 0 ${from.x} ${from.y}`
+                  : `M ${from.x} ${from.y} A ${IOS_LABEL_R} ${IOS_LABEL_R} 0 0 1 ${to.x} ${to.y}`;
+                return (
+                  <path key={segment.id} id={`ios-label-arc-${segment.id}`} d={d} />
+                );
+              })}
+            </defs>
 
-          {/* Know more, on the open slice only, inside the band below its label */}
+            {IOS_SEGMENTS.map((segment) => {
+              const isActive = tappedSegment === segment.id;
+              return (
+                <path
+                  key={`outline-${segment.id}`}
+                  d={iosArcPath(
+                    segment.startDeg,
+                    segment.endDeg,
+                    isActive ? IOS_OUTER_ACTIVE : IOS_OUTER_DEFAULT,
+                  )}
+                  fill="none"
+                  stroke={
+                    isActive ? "rgba(0,153,255,0.8)" : "rgba(0,153,255,0.15)"
+                  }
+                  strokeWidth={isActive ? 1.5 : 1}
+                  transform={
+                    isActive
+                      ? `translate(${segment.shift.x.toFixed(2)} ${segment.shift.y.toFixed(2)})`
+                      : undefined
+                  }
+                  style={{ transition: "stroke 0.3s ease" }}
+                />
+              );
+            })}
+
+            {IOS_SEGMENTS.map((segment) => (
+              <text
+                key={`label-${segment.id}`}
+                fontSize="9"
+                fontWeight="700"
+                fill={
+                  tappedSegment === segment.id
+                    ? "rgba(255,255,255,1)"
+                    : "rgba(255,255,255,0.75)"
+                }
+                fontFamily="Inter"
+                letterSpacing="1.5"
+                textAnchor="middle"
+                style={{ transition: "fill 0.3s ease" }}
+              >
+                <textPath
+                  href={`#ios-label-arc-${segment.id}`}
+                  startOffset="50%"
+                >
+                  {segment.title.toUpperCase()}
+                </textPath>
+              </text>
+            ))}
+          </svg>
+
+          {/* Know more, on the open slice only, in the gap the slice leaves */}
           {IOS_SEGMENTS.map((segment) => {
             if (tappedSegment !== segment.id) return null;
             return (
@@ -1172,10 +1305,10 @@ export default function SpecializationsSection() {
                 }}
                 style={{
                   position: "absolute",
-                  left: segment.pillPos.x,
-                  top: segment.pillPos.y,
+                  left: segment.pill.x,
+                  top: segment.pill.y,
                   transform: "translate(-50%, -50%)",
-                  zIndex: 10,
+                  zIndex: 8,
                   pointerEvents: "all",
                   cursor: "none",
                 }}
@@ -1184,23 +1317,25 @@ export default function SpecializationsSection() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "4px",
+                    gap: "5px",
                     background: "rgba(9,9,9,0.92)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
                     border: "0.5px solid rgba(0,153,255,0.5)",
                     borderRadius: "100px",
-                    padding: "5px 10px",
-                    fontSize: "9px",
+                    padding: "7px 14px",
+                    fontSize: "11px",
                     fontWeight: 500,
                     color: "#ffffff",
                     fontFamily: "Inter",
                     whiteSpace: "nowrap",
-                    WebkitTapHighlightColor: "transparent",
                     boxShadow: "0 0 12px rgba(0,153,255,0.2)",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   <svg
-                    width="9"
-                    height="9"
+                    width="10"
+                    height="10"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="#0099ff"
@@ -2005,15 +2140,21 @@ export default function SpecializationsSection() {
       {/* Full screen project overlay. Kept outside the scaled pie wrapper: a
           transformed ancestor would become the containing block for the fixed
           positioning and trap the overlay inside the pie. */}
+      {/*
+        Mounted straight off the state rather than through AnimatePresence.
+        Under AnimatePresence the exit ran its opacity to 0 and then stalled
+        without ever unmounting, which left a full screen sheet over the page
+        that still took every tap: the overlay looked closed and the site went
+        dead behind it. Closing now removes the element outright. The cost is
+        the fade on the way out, which is worth a close button that closes.
+      */}
       {typeof window !== "undefined" &&
+        selectedProject &&
         createPortal(
-          <AnimatePresence>
-            {selectedProject && (
           <motion.div
             className="project-overlay-container"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             onClick={closeSpecOverlay}
             role="dialog"
@@ -2028,6 +2169,58 @@ export default function SpecializationsSection() {
               cursor: "none",
             }}
           >
+            {/*
+              First child of the overlay itself, not of the panel inside it.
+              The panel carries a framer transform while it animates and it is
+              what scrolls, and a fixed child of a transformed element anchors
+              to that element rather than to the viewport, which is how the
+              close control ended up out of reach. Out here the viewport is the
+              containing block and the button stays in the corner.
+            */}
+            <button
+              className="project-overlay-close"
+              /*
+                The backdrop closes on click too, and this button is a child of
+                it rather than of the panel that stops propagation. Without
+                this the close ran twice and popped two history entries, which
+                took the visitor off the site altogether.
+              */
+              onClick={(e) => {
+                e.stopPropagation();
+                closeSpecOverlay();
+              }}
+              aria-label="Close project details"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#0099ff";
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "#262626";
+                e.currentTarget.style.color = "#999999";
+              }}
+              style={{
+                position: "fixed",
+                top: "16px",
+                right: "16px",
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background: "#141414",
+                border: "0.5px solid #262626",
+                color: "#999999",
+                fontSize: "20px",
+                cursor: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10001,
+                WebkitTapHighlightColor: "transparent",
+                lineHeight: 1,
+              }}
+            >
+              x
+            </button>
+
             <motion.div
               className="project-overlay-inner"
               initial={{ opacity: 0, y: 20 }}
@@ -2119,37 +2312,7 @@ export default function SpecializationsSection() {
               <div
                 className="project-overlay-right"
               >
-                <button
-                  className="project-overlay-close"
-                  onClick={closeSpecOverlay}
-                  aria-label="Close project details"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#0099ff";
-                    e.currentTarget.style.color = "#ffffff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#262626";
-                    e.currentTarget.style.color = "#999999";
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: "32px",
-                    right: "32px",
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: "#141414",
-                    border: "0.5px solid #262626",
-                    color: "#999999",
-                    fontSize: "18px",
-                    cursor: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  x
-                </button>
+                {/* The close control now lives at the overlay root, above. */}
 
                 <div
                   style={{
@@ -2317,9 +2480,7 @@ export default function SpecializationsSection() {
                 </a>
               </div>
             </motion.div>
-          </motion.div>
-            )}
-          </AnimatePresence>,
+          </motion.div>,
           document.body,
         )}
     </section>
