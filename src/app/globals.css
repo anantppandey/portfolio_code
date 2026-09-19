@@ -417,3 +417,11 @@ footer {
     padding-left: 15% !important;
   }
 }
+
+@media (min-width: 768px) {
+  .hero-content-wrapper {
+    padding-left: clamp(40px, 6vw, 120px) !important;
+    padding-right: clamp(40px, 6vw, 120px) !important;
+    max-width: 640px !important;
+  }
+}
